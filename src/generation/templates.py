@@ -68,9 +68,9 @@ AND
 
 {mp.respondent_name.upper()} ……………………………… {mp.respondent_description.upper()}
 
-{'=' * 60}
+{"=" * 60}
 {mp.motion_type.upper()}
-{'=' * 60}
+{"=" * 60}
 
 TAKE NOTICE that this Honourable Court will be moved on the ______ day of \
 _______ 20___ at the hour of 9 o'clock in the forenoon or so soon thereafter \
@@ -119,9 +119,9 @@ def render_affidavit(aff: SupportingAffidavit) -> str:
 
 {aff.parties}
 
-{'=' * 60}
-AFFIDAVIT IN SUPPORT OF {aff.court_header.split('—')[-1].strip() if '—' in aff.court_header else 'THE APPLICATION'}
-{'=' * 60}
+{"=" * 60}
+AFFIDAVIT IN SUPPORT OF {aff.court_header.split("—")[-1].strip() if "—" in aff.court_header else "THE APPLICATION"}
+{"=" * 60}
 
 I, {aff.deponent_name}, {aff.deponent_description}, do hereby make oath and \
 state as follows:
@@ -154,9 +154,9 @@ def render_written_address(wa: WrittenAddress) -> str:
 
 {wa.parties}
 
-{'=' * 60}
+{"=" * 60}
 {wa.title.upper()}
-{'=' * 60}
+{"=" * 60}
 
 1.0 INTRODUCTION
 

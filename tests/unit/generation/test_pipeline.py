@@ -202,8 +202,7 @@ class TestArgumentGeneration:
     @pytest.mark.asyncio
     async def test_extracts_citations_from_text(self):
         arg_text = (
-            "As held in Madukolu v. Nkemdilim (1962) 2 SCNLR 341, "
-            "the court must have jurisdiction."
+            "As held in Madukolu v. Nkemdilim (1962) 2 SCNLR 341, the court must have jurisdiction."
         )
         client = _mock_client(arg_text)
         pipeline = MotionGenerationPipeline(

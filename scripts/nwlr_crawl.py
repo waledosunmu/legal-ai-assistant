@@ -421,9 +421,7 @@ def load(limit: int) -> None:
         finally:
             await close_pool()
 
-        click.echo(
-            f"Loaded: {stats['loaded']}  Errors: {stats['errors']}  " f"Total: {stats['total']}"
-        )
+        click.echo(f"Loaded: {stats['loaded']}  Errors: {stats['errors']}  Total: {stats['total']}")
 
     asyncio.run(_run())
 

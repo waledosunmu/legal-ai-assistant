@@ -97,8 +97,7 @@ class CitationVerifier:
             if not case_row:
                 result["checks"]["existence"] = False
                 result["warning"] = (
-                    "This case was NOT found in our database. "
-                    "Please verify manually before filing."
+                    "This case was NOT found in our database. Please verify manually before filing."
                 )
                 return result
 

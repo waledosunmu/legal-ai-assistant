@@ -50,7 +50,7 @@ def _parse_court(court_code: str) -> Court:
         return Court(court_code.upper())
     except ValueError as exc:
         raise click.BadParameter(
-            f"Unknown court '{court_code}'. " f"Valid codes: {', '.join(COURT_CHOICES)}"
+            f"Unknown court '{court_code}'. Valid codes: {', '.join(COURT_CHOICES)}"
         ) from exc
 
 
@@ -76,7 +76,7 @@ def cli(ctx: click.Context, data_dir: str) -> None:
     "--court",
     "court_codes",
     multiple=True,
-    help=("Court code(s) to discover (repeatable). " "Defaults to all MVP courts if omitted."),
+    help=("Court code(s) to discover (repeatable). Defaults to all MVP courts if omitted."),
 )
 @click.pass_context
 def discover(ctx: click.Context, court_codes: tuple[str, ...]) -> None:

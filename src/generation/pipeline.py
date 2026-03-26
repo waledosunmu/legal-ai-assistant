@@ -393,7 +393,7 @@ Return JSON only:
     ) -> list[dict]:
         """Analyse each issue from the opposing party's perspective using Haiku."""
         args_summary = "\n\n".join(
-            f"ISSUE {a.issue_number}: {a.issue_text}\n" f"Argument: {a.argument_text[:500]}"
+            f"ISSUE {a.issue_number}: {a.issue_text}\nArgument: {a.argument_text[:500]}"
             for a in arguments
         )
 
@@ -450,7 +450,7 @@ CASE FACTS:
 RELIEF SOUGHT: {req.relief_sought}
 
 ISSUES FOR DETERMINATION:
-{chr(10).join(f"{i+1}. {iss}" for i, iss in enumerate(issues))}
+{chr(10).join(f"{i + 1}. {iss}" for i, iss in enumerate(issues))}
 
 Draft 2-5 specific prayers. Each prayer should be:
 - A specific, actionable relief the court can grant
@@ -482,7 +482,7 @@ CASE FACTS:
 {req.case_facts[:1500]}
 
 ISSUES:
-{chr(10).join(f"{i+1}. {iss}" for i, iss in enumerate(issues))}
+{chr(10).join(f"{i + 1}. {iss}" for i, iss in enumerate(issues))}
 
 Draft 3-6 grounds of application. Each ground should:
 - State a factual or legal basis for the motion
@@ -540,7 +540,7 @@ CASE FACTS (brief):
 {req.case_facts[:1000]}
 
 ISSUES:
-{chr(10).join(f"{i+1}. {iss}" for i, iss in enumerate(issues))}
+{chr(10).join(f"{i + 1}. {iss}" for i, iss in enumerate(issues))}
 
 Write a concise introduction (2-4 sentences) that:
 - States what the Written Address is in support of
@@ -565,7 +565,7 @@ Return ONLY the introduction text, no JSON."""
         arguments: list[ArgumentSection] | tuple[ArgumentSection, ...],
     ) -> str:
         """Generate the conclusion section using Haiku."""
-        issues_summary = "\n".join(f"Issue {i+1}: {iss}" for i, iss in enumerate(issues))
+        issues_summary = "\n".join(f"Issue {i + 1}: {iss}" for i, iss in enumerate(issues))
         prompt = f"""You are a Nigerian litigation lawyer writing the conclusion \
 of a Written Address for a {req.motion_type} motion.
 
@@ -713,7 +713,7 @@ Return ONLY the conclusion text, no JSON."""
             segment = c.get("matched_segment", {})
             content = segment.get("content", "") if isinstance(segment, dict) else ""
             lines.append(
-                f"CASE {i}: {name} {citation} ({court})\n" f"Relevant excerpt:\n{content[:500]}\n"
+                f"CASE {i}: {name} {citation} ({court})\nRelevant excerpt:\n{content[:500]}\n"
             )
         return "\n".join(lines)
 

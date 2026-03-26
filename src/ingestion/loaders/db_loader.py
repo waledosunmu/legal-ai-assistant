@@ -144,7 +144,7 @@ class BulkCaseLoader:
         mapped = _COURT_MAP.get(court_code.upper())
         if mapped is None:
             raise ValueError(
-                f"Unknown court code '{court_code}'. " f"Valid codes: {', '.join(_COURT_MAP)}"
+                f"Unknown court code '{court_code}'. Valid codes: {', '.join(_COURT_MAP)}"
             )
         return mapped
 

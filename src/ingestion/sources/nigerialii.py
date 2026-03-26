@@ -23,7 +23,7 @@ logger = structlog.get_logger(__name__)
 
 BASE_URL = "https://nigerialii.org"
 
-USER_AGENT = "LegalAIAssistant/0.1 " "(Nigerian legal research tool; contact@legalaiassistant.ng)"
+USER_AGENT = "LegalAIAssistant/0.1 (Nigerian legal research tool; contact@legalaiassistant.ng)"
 
 
 class Court(StrEnum):

@@ -240,7 +240,7 @@ class TestNLPSegmentClassifierReclassify:
     def test_confidence_capped_at_0_9(self):
         clf = NLPSegmentClassifier()
         content = (
-            "HELD In the result this appeal is dismissed. " "We hold that the decision is upheld."
+            "HELD In the result this appeal is dismissed. We hold that the decision is upheld."
         )
         seg = self._make_seg(content, confidence=0.3)
         result = clf.reclassify([seg])
