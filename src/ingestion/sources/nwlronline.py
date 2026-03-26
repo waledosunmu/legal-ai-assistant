@@ -36,7 +36,6 @@ from typing import Any
 import httpx
 import jwt
 import structlog
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 logger = structlog.get_logger(__name__)
 
@@ -62,7 +61,7 @@ class NWLRCaseId:
         return f"{self.part}_1_{self.page_start}"
 
     @classmethod
-    def from_str(cls, s: str) -> "NWLRCaseId":
+    def from_str(cls, s: str) -> NWLRCaseId:
         parts = s.split("_")
         return cls(part=int(parts[0]), page_start=int(parts[2]))
 
@@ -100,7 +99,7 @@ class NWLRCrawler:
 
     # ── Lifecycle ─────────────────────────────────────────────────────────
 
-    async def __aenter__(self) -> "NWLRCrawler":
+    async def __aenter__(self) -> NWLRCrawler:
         self._client = httpx.AsyncClient(
             timeout=30.0,
             headers={
@@ -349,9 +348,7 @@ class NWLRCrawler:
 
     def _require_client(self) -> httpx.AsyncClient:
         if self._client is None:
-            raise RuntimeError(
-                "NWLRCrawler must be used as an async context manager"
-            )
+            raise RuntimeError("NWLRCrawler must be used as an async context manager")
         return self._client
 
     async def _get(self, path: str) -> httpx.Response:
@@ -379,8 +376,7 @@ class NWLRCrawler:
         """Single rate-limited GET (no retry logic)."""
         async with self._semaphore:
             # Jitter: add ±50% of rate_limit to break predictable timing patterns
-            jitter = random.uniform(-0.5 * self.rate_limit_seconds,
-                                    0.5 * self.rate_limit_seconds)
+            jitter = random.uniform(-0.5 * self.rate_limit_seconds, 0.5 * self.rate_limit_seconds)
             await asyncio.sleep(max(0.1, self.rate_limit_seconds + jitter))
             token = await self._ensure_auth()
             client = self._require_client()

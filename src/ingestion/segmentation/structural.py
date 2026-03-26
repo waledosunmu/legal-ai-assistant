@@ -133,7 +133,7 @@ class StructuralSegmenter:
         for seg_type, patterns in self._SECTION_PATTERNS.items():
             for pattern in patterns:
                 if re.search(pattern, text, re.IGNORECASE):
-                    if 0.8 > best_conf:
+                    if best_conf < 0.8:
                         best_type = seg_type
                         best_conf = 0.8
                     break  # one pattern match per type is sufficient

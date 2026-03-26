@@ -9,7 +9,6 @@ import pytest
 
 from retrieval.query_parser import QueryParser, _layer1_regex, _layer2_rules
 
-
 # ── Layer 1 — regex + citation extraction ─────────────────────────────────────
 
 
@@ -96,9 +95,11 @@ class TestLayer2:
         assert result_rich.confidence > result_bare.confidence
 
     def test_confidence_capped_at_one(self) -> None:
-        q = ("jurisdiction locus standi estoppel res judicata injunction "
-             "natural justice fundamental rights contract breach tort negligence "
-             "dismissal strike out stay of execution")
+        q = (
+            "jurisdiction locus standi estoppel res judicata injunction "
+            "natural justice fundamental rights contract breach tort negligence "
+            "dismissal strike out stay of execution"
+        )
         partial = _layer1_regex(q)
         result = _layer2_rules(q, partial)
         assert result.confidence <= 1.0
@@ -145,7 +146,7 @@ class TestLayer3:
         parser = QueryParser(anthropic_client=client)
 
         # Rich query → high L2 confidence → no LLM call
-        result = await parser.parse(
+        await parser.parse(
             "application to dismiss suit for want of jurisdiction "
             "estoppel res judicata natural justice motion to strike out"
         )

@@ -19,7 +19,6 @@ from generation.models import (
     WrittenAddress,
 )
 
-
 # ── Fixture data ───────────────────────────────────────────────────────────────
 
 
@@ -63,7 +62,12 @@ def _pipeline_result() -> GenerationResult:
         issue_text="Whether the court has jurisdiction?",
         argument_text="Jurisdiction is fundamental. Madukolu v. Nkemdilim (1962) 2 SCNLR 341.",
         cases_cited=[
-            {"name": "Madukolu v. Nkemdilim", "citation": "(1962) 2 SCNLR 341", "verified": True, "status": "fully_verified"}
+            {
+                "name": "Madukolu v. Nkemdilim",
+                "citation": "(1962) 2 SCNLR 341",
+                "verified": True,
+                "status": "fully_verified",
+            }
         ],
     )
     return GenerationResult(
@@ -162,6 +166,7 @@ def mock_pipeline():
 @pytest.fixture
 async def client(mock_pipeline):
     from api.app import app
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
@@ -180,9 +185,14 @@ class TestGenerateEndpoint:
         resp = await client.post("/api/v1/generate", json=_valid_payload())
         body = resp.json()
         for key in (
-            "motion_paper", "affidavit", "written_address",
-            "citation_report", "citation_summary",
-            "strength_report", "counter_arguments", "readiness",
+            "motion_paper",
+            "affidavit",
+            "written_address",
+            "citation_report",
+            "citation_summary",
+            "strength_report",
+            "counter_arguments",
+            "readiness",
         ):
             assert key in body, f"Missing key: {key}"
 
@@ -274,6 +284,7 @@ class TestErrorHandling:
         failing = _make_mock_pipeline(raises=RuntimeError("LLM unavailable"))
         with patch("api.app._pipeline", failing):
             from api.app import app
+
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.post("/api/v1/generate", json=_valid_payload())
         assert resp.status_code == 500

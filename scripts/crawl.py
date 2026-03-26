@@ -48,11 +48,10 @@ COURT_CHOICES = [c.value for c in Court]
 def _parse_court(court_code: str) -> Court:
     try:
         return Court(court_code.upper())
-    except ValueError:
+    except ValueError as exc:
         raise click.BadParameter(
-            f"Unknown court '{court_code}'. "
-            f"Valid codes: {', '.join(COURT_CHOICES)}"
-        )
+            f"Unknown court '{court_code}'. " f"Valid codes: {', '.join(COURT_CHOICES)}"
+        ) from exc
 
 
 @click.group()
@@ -77,10 +76,7 @@ def cli(ctx: click.Context, data_dir: str) -> None:
     "--court",
     "court_codes",
     multiple=True,
-    help=(
-        "Court code(s) to discover (repeatable). "
-        "Defaults to all MVP courts if omitted."
-    ),
+    help=("Court code(s) to discover (repeatable). " "Defaults to all MVP courts if omitted."),
 )
 @click.pass_context
 def discover(ctx: click.Context, court_codes: tuple[str, ...]) -> None:
@@ -111,9 +107,7 @@ def discover(ctx: click.Context, court_codes: tuple[str, ...]) -> None:
     help="Max judgments to fetch per court (useful for testing).",
 )
 @click.pass_context
-def fetch(
-    ctx: click.Context, court_codes: tuple[str, ...], limit: int | None
-) -> None:
+def fetch(ctx: click.Context, court_codes: tuple[str, ...], limit: int | None) -> None:
     """Fetch individual judgment pages for discovered cases."""
     data_dir: Path = ctx.obj["data_dir"]
     courts = [_parse_court(c) for c in court_codes] if court_codes else None
@@ -198,16 +192,16 @@ def coa(ctx: click.Context, cache_dir: str) -> None:
                     continue
                 # Normalise to the format expected by scripts/parse.py
                 record = {
-                    "case_id":       j.case_id,
-                    "case_name":     j.case_name,
-                    "citation":      j.citation,
-                    "court":         j.court,
+                    "case_id": j.case_id,
+                    "case_name": j.case_name,
+                    "citation": j.citation,
+                    "court": j.court,
                     "judgment_date": j.date_decided,
-                    "judges":        j.judges,
-                    "labels":        j.area_of_law,
-                    "source_url":    j.metadata.get("gdrive_link", ""),
-                    "full_text":     j.full_text,
-                    "metadata":      j.metadata,
+                    "judges": j.judges,
+                    "labels": j.area_of_law,
+                    "source_url": j.metadata.get("gdrive_link", ""),
+                    "full_text": j.full_text,
+                    "metadata": j.metadata,
                 }
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
                 written += 1
@@ -215,7 +209,7 @@ def coa(ctx: click.Context, cache_dir: str) -> None:
 
     total = asyncio.run(_run())
     click.echo(f"\nCoA crawl complete: {total} judgments written to {output_path}")
-    click.echo(f"Next: python scripts/parse.py run --court NGCA_COA")
+    click.echo("Next: python scripts/parse.py run --court NGCA_COA")
 
 
 if __name__ == "__main__":

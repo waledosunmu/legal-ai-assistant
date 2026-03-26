@@ -6,7 +6,6 @@ import re
 
 from .models import JudgmentSegment, SegmentType
 
-
 # Weighted keyword patterns per segment type.
 # Each entry is (regex_pattern, confidence_weight).
 # Weights are additive; capped at _MAX_BOOST before applying.
@@ -88,9 +87,7 @@ class NLPSegmentClassifier:
     No external APIs — purely deterministic.
     """
 
-    def reclassify(
-        self, segments: list[JudgmentSegment]
-    ) -> list[JudgmentSegment]:
+    def reclassify(self, segments: list[JudgmentSegment]) -> list[JudgmentSegment]:
         """
         Return a new list with updated confidence scores (and types where
         keyword evidence is strong enough to override pass-1 guesses).

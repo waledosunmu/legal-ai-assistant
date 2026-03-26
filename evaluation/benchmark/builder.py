@@ -18,7 +18,7 @@ class BenchmarkQuery:
 
     query_id: str
     query_text: str
-    relevant_case_ids: list[str]        # Ground-truth relevant case IDs
+    relevant_case_ids: list[str]  # Ground-truth relevant case IDs
     area_of_law: str | None = None
     notes: str | None = None
 
@@ -28,9 +28,9 @@ class EvaluationResult:
     """Retrieval metrics for a single query."""
 
     query_id: str
-    recall_at_k: float       # Fraction of relevant docs in top-K
-    reciprocal_rank: float   # 1 / rank of first relevant result (0 if none)
-    ndcg_at_k: float         # Normalised discounted cumulative gain at K
+    recall_at_k: float  # Fraction of relevant docs in top-K
+    reciprocal_rank: float  # 1 / rank of first relevant result (0 if none)
+    ndcg_at_k: float  # Normalised discounted cumulative gain at K
     retrieved_ids: list[str] = field(default_factory=list)
 
 
@@ -72,11 +72,11 @@ class NLRBBuilder:
         with self.path.open("w", encoding="utf-8") as f:
             for q in queries:
                 record = {
-                    "query_id":          q.query_id,
-                    "query_text":        q.query_text,
+                    "query_id": q.query_id,
+                    "query_text": q.query_text,
                     "relevant_case_ids": q.relevant_case_ids,
-                    "area_of_law":       q.area_of_law,
-                    "notes":             q.notes,
+                    "area_of_law": q.area_of_law,
+                    "notes": q.notes,
                 }
                 f.write(json.dumps(record) + "\n")
         logger.info("nlrb.saved", path=str(self.path), count=len(queries))
@@ -86,11 +86,11 @@ class NLRBBuilder:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as f:
             record = {
-                "query_id":          query.query_id,
-                "query_text":        query.query_text,
+                "query_id": query.query_id,
+                "query_text": query.query_text,
                 "relevant_case_ids": query.relevant_case_ids,
-                "area_of_law":       query.area_of_law,
-                "notes":             query.notes,
+                "area_of_law": query.area_of_law,
+                "notes": query.notes,
             }
             f.write(json.dumps(record) + "\n")
 
@@ -136,9 +136,7 @@ class EmbeddingEvaluator:
                 EvaluationResult(
                     query_id=q.query_id,
                     recall_at_k=self._recall(retrieved, q.relevant_case_ids),
-                    reciprocal_rank=self._reciprocal_rank(
-                        retrieved, q.relevant_case_ids
-                    ),
+                    reciprocal_rank=self._reciprocal_rank(retrieved, q.relevant_case_ids),
                     ndcg_at_k=self._ndcg(retrieved, q.relevant_case_ids, k),
                     retrieved_ids=retrieved,
                 )
@@ -147,11 +145,11 @@ class EmbeddingEvaluator:
         n = len(results) or 1
         summary = {
             "recall_at_k": round(sum(r.recall_at_k for r in results) / n, 4),
-            "mrr":          round(sum(r.reciprocal_rank for r in results) / n, 4),
-            "ndcg_at_k":   round(sum(r.ndcg_at_k for r in results) / n, 4),
-            "k":            k,
-            "num_queries":  len(results),
-            "per_query":    results,
+            "mrr": round(sum(r.reciprocal_rank for r in results) / n, 4),
+            "ndcg_at_k": round(sum(r.ndcg_at_k for r in results) / n, 4),
+            "k": k,
+            "num_queries": len(results),
+            "per_query": results,
         }
 
         logger.info(

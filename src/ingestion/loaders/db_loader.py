@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import structlog
 import asyncpg
+import structlog
 
 from ingestion.segmentation.models import SegmentType
 
@@ -14,8 +14,8 @@ logger = structlog.get_logger(__name__)
 
 # NigeriaLII crawler Court code → PostgreSQL court_enum value
 _COURT_MAP: dict[str, str] = {
-    "NGSC":   "SUPREME_COURT",
-    "NGCA":   "COURT_OF_APPEAL",
+    "NGSC": "SUPREME_COURT",
+    "NGCA": "COURT_OF_APPEAL",
     "NGFCHC": "FEDERAL_HIGH_COURT",
     "NGLAHC": "LAGOS_HIGH_COURT",
     "NGKNHC": "KANO_HIGH_COURT",
@@ -27,39 +27,39 @@ _COURT_MAP: dict[str, str] = {
 # Our SegmentType values → PostgreSQL segment_type enum
 # DB enum: FACTS, ISSUE, HOLDING, RATIO, OBITER, ORDER, ANALYSIS, CAPTION, INTRODUCTION
 _SEGMENT_TYPE_MAP: dict[str, str] = {
-    SegmentType.CAPTION.value:      "CAPTION",
-    SegmentType.BACKGROUND.value:   "ANALYSIS",    # no BACKGROUND in DB enum
-    SegmentType.FACTS.value:        "FACTS",
-    SegmentType.ISSUES.value:       "ISSUE",
-    SegmentType.SUBMISSION.value:   "ANALYSIS",
-    SegmentType.ANALYSIS.value:     "ANALYSIS",
-    SegmentType.HOLDING.value:      "HOLDING",
-    SegmentType.RATIO.value:        "RATIO",
-    SegmentType.OBITER.value:       "OBITER",
-    SegmentType.ORDERS.value:       "ORDER",
-    SegmentType.DISSENT.value:      "ANALYSIS",
-    SegmentType.CONCURRENCE.value:  "ANALYSIS",
-    SegmentType.CITED_CASE.value:   "ANALYSIS",
+    SegmentType.CAPTION.value: "CAPTION",
+    SegmentType.BACKGROUND.value: "ANALYSIS",  # no BACKGROUND in DB enum
+    SegmentType.FACTS.value: "FACTS",
+    SegmentType.ISSUES.value: "ISSUE",
+    SegmentType.SUBMISSION.value: "ANALYSIS",
+    SegmentType.ANALYSIS.value: "ANALYSIS",
+    SegmentType.HOLDING.value: "HOLDING",
+    SegmentType.RATIO.value: "RATIO",
+    SegmentType.OBITER.value: "OBITER",
+    SegmentType.ORDERS.value: "ORDER",
+    SegmentType.DISSENT.value: "ANALYSIS",
+    SegmentType.CONCURRENCE.value: "ANALYSIS",
+    SegmentType.CITED_CASE.value: "ANALYSIS",
     # Chunk-level segment types from LegalTextChunker
-    "ratio":    "RATIO",
-    "holding":  "HOLDING",
-    "facts":    "FACTS",
+    "ratio": "RATIO",
+    "holding": "HOLDING",
+    "facts": "FACTS",
     "analysis": "ANALYSIS",
-    "orders":   "ORDER",
-    "obiter":   "OBITER",
-    "caption":  "CAPTION",
+    "orders": "ORDER",
+    "obiter": "OBITER",
+    "caption": "CAPTION",
     "background": "ANALYSIS",
-    "issues":   "ISSUE",
+    "issues": "ISSUE",
 }
 
 # Retrieval weight per DB segment type
 _RETRIEVAL_WEIGHT: dict[str, float] = {
-    "RATIO":   2.0,
+    "RATIO": 2.0,
     "HOLDING": 1.8,
-    "OBITER":  1.3,
-    "ORDER":   1.3,
-    "ISSUE":   1.2,
-    "FACTS":   1.0,
+    "OBITER": 1.3,
+    "ORDER": 1.3,
+    "ISSUE": 1.2,
+    "FACTS": 1.0,
     "ANALYSIS": 1.0,
     "CAPTION": 0.5,
     "INTRODUCTION": 0.7,
@@ -144,8 +144,7 @@ class BulkCaseLoader:
         mapped = _COURT_MAP.get(court_code.upper())
         if mapped is None:
             raise ValueError(
-                f"Unknown court code '{court_code}'. "
-                f"Valid codes: {', '.join(_COURT_MAP)}"
+                f"Unknown court code '{court_code}'. " f"Valid codes: {', '.join(_COURT_MAP)}"
             )
         return mapped
 
@@ -219,16 +218,13 @@ class BulkCaseLoader:
         ``segments`` list of dicts with keys: ``segment_type``, ``content``,
         ``issue_number`` (optional), ``metadata`` (optional).
         """
-        await conn.execute(
-            "DELETE FROM case_segments WHERE case_id = $1", case_id
-        )
+        await conn.execute("DELETE FROM case_segments WHERE case_id = $1", case_id)
 
         count = 0
         import json as _json
+
         for seg in segments:
-            seg_type = self.map_segment_type(
-                seg.get("segment_type", "analysis")
-            )
+            seg_type = self.map_segment_type(seg.get("segment_type", "analysis"))
             weight = _RETRIEVAL_WEIGHT.get(seg_type, 1.0)
             metadata = _json.dumps(seg.get("metadata") or {})
             await conn.execute(
@@ -262,9 +258,7 @@ class BulkCaseLoader:
         """
         import json as _json
 
-        await conn.execute(
-            "DELETE FROM case_segments WHERE case_id = $1::uuid", case_id
-        )
+        await conn.execute("DELETE FROM case_segments WHERE case_id = $1::uuid", case_id)
 
         count = 0
         for chunk in chunks:

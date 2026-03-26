@@ -16,6 +16,7 @@ router = APIRouter()
 def _get_engine():
     """Lazy import to avoid circular dep at module load time."""
     from api.app import get_engine
+
     return get_engine()
 
 
@@ -36,6 +37,6 @@ async def search(request: SearchRequest) -> SearchResponse:
         )
     except Exception as exc:
         logger.error("search.handler_failed exc=%s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Search failed. Please try again.")
+        raise HTTPException(status_code=500, detail="Search failed. Please try again.") from exc
 
     return SearchResponse(**result)

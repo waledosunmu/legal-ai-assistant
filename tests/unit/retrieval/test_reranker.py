@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from retrieval.models import CandidateResult, RetrievalConfig
+from retrieval.models import CandidateResult
 from retrieval.reranker import LLMReranker, _short_name
 
 
@@ -78,15 +78,25 @@ class TestLLMReranker:
     async def test_llm_scores_applied(self) -> None:
         """LLM gives high score to c2, which should then outrank c1."""
         llm_data = [
-            {"id": "s1", "factual_similarity": 0.2, "principle_applicability": 0.2,
-             "authority_strength": 0.2, "explanation": "weakly relevant"},
-            {"id": "s2", "factual_similarity": 0.9, "principle_applicability": 0.9,
-             "authority_strength": 0.9, "explanation": "highly relevant"},
+            {
+                "id": "s1",
+                "factual_similarity": 0.2,
+                "principle_applicability": 0.2,
+                "authority_strength": 0.2,
+                "explanation": "weakly relevant",
+            },
+            {
+                "id": "s2",
+                "factual_similarity": 0.9,
+                "principle_applicability": 0.9,
+                "authority_strength": 0.9,
+                "explanation": "highly relevant",
+            },
         ]
         anthropic = _make_anthropic(llm_data)
         reranker = LLMReranker(anthropic_client=anthropic)
-        c1 = _candidate("s1", "c1", boosted_score=0.8)   # fusion rank 1
-        c2 = _candidate("s2", "c2", boosted_score=0.3)   # fusion rank 2
+        c1 = _candidate("s1", "c1", boosted_score=0.8)  # fusion rank 1
+        c2 = _candidate("s2", "c2", boosted_score=0.3)  # fusion rank 2
         meta = {**_meta("c1", "Alpha Case"), **_meta("c2", "Beta Case")}
         result = await reranker.rerank("test query", [c1, c2], meta)
         # LLM score reversal should flip the ranking
@@ -96,8 +106,13 @@ class TestLLMReranker:
     async def test_relevance_score_blended_correctly(self) -> None:
         """Final score = 0.70 × llm_score + 0.30 × norm_fusion."""
         llm_data = [
-            {"id": "s1", "factual_similarity": 1.0, "principle_applicability": 1.0,
-             "authority_strength": 1.0, "explanation": "perfect match"}
+            {
+                "id": "s1",
+                "factual_similarity": 1.0,
+                "principle_applicability": 1.0,
+                "authority_strength": 1.0,
+                "explanation": "perfect match",
+            }
         ]
         anthropic = _make_anthropic(llm_data)
         reranker = LLMReranker(anthropic_client=anthropic)
@@ -110,8 +125,13 @@ class TestLLMReranker:
     @pytest.mark.asyncio
     async def test_explanation_populated_from_llm(self) -> None:
         llm_data = [
-            {"id": "s1", "factual_similarity": 0.8, "principle_applicability": 0.8,
-             "authority_strength": 0.8, "explanation": "Leading case on jurisdiction"}
+            {
+                "id": "s1",
+                "factual_similarity": 0.8,
+                "principle_applicability": 0.8,
+                "authority_strength": 0.8,
+                "explanation": "Leading case on jurisdiction",
+            }
         ]
         anthropic = _make_anthropic(llm_data)
         reranker = LLMReranker(anthropic_client=anthropic)
@@ -135,9 +155,17 @@ class TestLLMReranker:
     @pytest.mark.asyncio
     async def test_top_n_respected(self) -> None:
         candidates = [_candidate(f"s{i}", f"c{i}", boosted_score=1.0 / (i + 1)) for i in range(10)]
-        meta = {f"c{i}": {"case_name": f"Case {i}", "citation": None, "court": "NGSC",
-                           "year": 2020, "times_cited": 0, "authority_score": 0}
-                for i in range(10)}
+        meta = {
+            f"c{i}": {
+                "case_name": f"Case {i}",
+                "citation": None,
+                "court": "NGSC",
+                "year": 2020,
+                "times_cited": 0,
+                "authority_score": 0,
+            }
+            for i in range(10)
+        }
         reranker = LLMReranker(anthropic_client=None)
         result = await reranker.rerank("test", candidates, meta, top_n=3)
         assert len(result) == 3
@@ -155,8 +183,16 @@ class TestLLMReranker:
     async def test_metadata_populated_in_result(self) -> None:
         reranker = LLMReranker(anthropic_client=None)
         c1 = _candidate("s1", "c1", boosted_score=0.9, court="NGCA", year=2019)
-        meta = {"c1": {"case_name": "Obi v. INEC", "citation": "(2023) CA 123",
-                       "court": "NGCA", "year": 2023, "times_cited": 50, "authority_score": 50}}
+        meta = {
+            "c1": {
+                "case_name": "Obi v. INEC",
+                "citation": "(2023) CA 123",
+                "court": "NGCA",
+                "year": 2023,
+                "times_cited": 50,
+                "authority_score": 50,
+            }
+        }
         result = await reranker.rerank("q", [c1], meta)
         assert result[0].case_name == "Obi v. INEC"
         assert result[0].citation == "(2023) CA 123"

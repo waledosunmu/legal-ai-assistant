@@ -6,8 +6,6 @@ Create Date: 2026-03-11
 """
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY, TSVECTOR
 
 revision = "001"
 down_revision = None
@@ -298,9 +296,7 @@ def upgrade() -> None:
     op.execute("CREATE INDEX idx_citation_citing ON citation_graph (citing_case_id)")
 
     # Authority scores materialised view
-    op.execute(
-        "CREATE UNIQUE INDEX idx_authority_scores_case ON case_authority_scores (case_id)"
-    )
+    op.execute("CREATE UNIQUE INDEX idx_authority_scores_case ON case_authority_scores (case_id)")
 
     # Segments by case
     op.execute("CREATE INDEX idx_segments_case ON case_segments (case_id)")

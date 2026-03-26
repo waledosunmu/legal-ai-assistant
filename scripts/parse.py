@@ -22,9 +22,9 @@ from pathlib import Path
 import click
 import structlog
 
-from ingestion.segmentation.structural import StructuralSegmenter
-from ingestion.segmentation.nlp_rules import NLPSegmentClassifier
 from ingestion.segmentation.models import SegmentType
+from ingestion.segmentation.nlp_rules import NLPSegmentClassifier
+from ingestion.segmentation.structural import StructuralSegmenter
 
 structlog.configure(
     processors=[
@@ -44,9 +44,11 @@ def _make_case_id(record: dict) -> str:
     # https://nigerialii.org/akn/ng/judgment/ngsc/2017/5/eng@2017-06-22
     # → akn_ng_judgment_ngsc_2017_5
     path = re.sub(r"^https?://[^/]+", "", url)  # strip domain
-    path = re.sub(r"/eng@.*$", "", path)         # strip language@date suffix
+    path = re.sub(r"/eng@.*$", "", path)  # strip language@date suffix
     slug = path.strip("/").replace("/", "_")
-    return slug or record.get("citation", "unknown").replace(" ", "_").replace("[", "").replace("]", "")
+    return slug or record.get("citation", "unknown").replace(" ", "_").replace("[", "").replace(
+        "]", ""
+    )
 
 
 def _extract_year(record: dict) -> int | None:
@@ -86,19 +88,19 @@ def _segment_record(record: dict) -> dict:
             holdings.append({"issue": "", "determination": seg.content, "reasoning": ""})
 
     return {
-        "case_id":         _make_case_id(record),
-        "case_name":       record.get("case_name", ""),
-        "citation":        record.get("citation"),
-        "court":           record.get("court", ""),
-        "year":            _extract_year(record),
-        "judges":          record.get("judges", []),
-        "judgment_date":   record.get("judgment_date"),
-        "source_url":      record.get("source_url"),
-        "area_of_law":     record.get("labels", []),
+        "case_id": _make_case_id(record),
+        "case_name": record.get("case_name", ""),
+        "citation": record.get("citation"),
+        "court": record.get("court", ""),
+        "year": _extract_year(record),
+        "judges": record.get("judges", []),
+        "judgment_date": record.get("judgment_date"),
+        "source_url": record.get("source_url"),
+        "area_of_law": record.get("labels", []),
         "ratio_decidendi": ratio_decidendi,
-        "holdings":        holdings,
-        "segments":        segments,
-        "full_text":       full_text,
+        "holdings": holdings,
+        "segments": segments,
+        "full_text": full_text,
     }
 
 
@@ -146,8 +148,10 @@ def run(ctx: click.Context, court_codes: tuple[str, ...]) -> None:
         count = 0
 
         click.echo(f"Parsing {court_code}...")
-        with jsonl_path.open(encoding="utf-8") as fin, \
-             output_path.open("w", encoding="utf-8") as fout:
+        with (
+            jsonl_path.open(encoding="utf-8") as fin,
+            output_path.open("w", encoding="utf-8") as fout,
+        ):
             for line in fin:
                 record = json.loads(line)
                 try:

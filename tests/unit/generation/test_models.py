@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from generation.models import (
     ArgumentSection,
     AuditLog,
@@ -14,7 +12,6 @@ from generation.models import (
     VerificationStatus,
     WrittenAddress,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

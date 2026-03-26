@@ -20,17 +20,15 @@ logger = structlog.get_logger(__name__)
 
 # NWLR court string → our Court enum
 _COURT_MAP: dict[str, Court] = {
-    "S.C":   Court.SUPREME_COURT,
-    "SC":    Court.SUPREME_COURT,
-    "C.A":   Court.COURT_OF_APPEAL,
-    "CA":    Court.COURT_OF_APPEAL,
+    "S.C": Court.SUPREME_COURT,
+    "SC": Court.SUPREME_COURT,
+    "C.A": Court.COURT_OF_APPEAL,
+    "CA": Court.COURT_OF_APPEAL,
     "F.H.C": Court.FEDERAL_HIGH_COURT,
-    "FHC":   Court.FEDERAL_HIGH_COURT,
+    "FHC": Court.FEDERAL_HIGH_COURT,
 }
 
-_JUDGE_TITLE_RE = re.compile(
-    r"([A-Z][A-Z .'-]{2,40?}(?:JSC|JCA|FJCA|J\b|CJN|PCA|JCA))"
-)
+_JUDGE_TITLE_RE = re.compile(r"([A-Z][A-Z .'-]{2,40?}(?:JSC|JCA|FJCA|J\b|CJN|PCA|JCA))")
 _HEADNOTE_STOP_RE = re.compile(
     r"(JUDGMENT|RULING|DECISION|LEAD JUDGMENT)",
     re.IGNORECASE,
@@ -143,7 +141,7 @@ class NWLRParser:
         """Parse ISO date string from API response."""
         if not date_str:
             return None
-        for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
+        for _fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
             try:
                 return datetime.strptime(date_str[:10], "%Y-%m-%d").date()
             except ValueError:

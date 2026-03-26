@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
-from enum import Enum
+from datetime import UTC, date, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
@@ -23,13 +23,10 @@ logger = structlog.get_logger(__name__)
 
 BASE_URL = "https://nigerialii.org"
 
-USER_AGENT = (
-    "LegalAIAssistant/0.1 "
-    "(Nigerian legal research tool; contact@legalaiassistant.ng)"
-)
+USER_AGENT = "LegalAIAssistant/0.1 " "(Nigerian legal research tool; contact@legalaiassistant.ng)"
 
 
-class Court(str, Enum):
+class Court(StrEnum):
     SUPREME_COURT = "NGSC"
     COURT_OF_APPEAL = "NGCA"
     FEDERAL_HIGH_COURT = "NGFCHC"
@@ -84,9 +81,7 @@ class RawJudgment:
     full_html: str = ""
 
     # Ingestion metadata
-    crawled_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    crawled_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     source: str = "nigerialii"
 
 
@@ -122,7 +117,7 @@ class NigeriaLIICrawler:
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    async def __aenter__(self) -> "NigeriaLIICrawler":
+    async def __aenter__(self) -> NigeriaLIICrawler:
         self._client = httpx.AsyncClient(
             timeout=30.0,
             headers={"User-Agent": USER_AGENT},
@@ -156,9 +151,7 @@ class NigeriaLIICrawler:
 
         all_entries: list[CaseListEntry] = []
         for year in sorted(year_links, reverse=True):
-            entries = await self._crawl_year_listing(
-                court, year, year_links[year]
-            )
+            entries = await self._crawl_year_listing(court, year, year_links[year])
             all_entries.extend(entries)
             log.info("crawler.year_done", year=year, cases=len(entries))
 
@@ -176,19 +169,13 @@ class NigeriaLIICrawler:
         url = urljoin(BASE_URL, entry.case_url)
 
         # Derive a stable filesystem-safe cache key from the AKN URI
-        cache_key = (
-            "judgments/"
-            + entry.case_url.lstrip("/").replace("/", "_")
-            + ".html"
-        )
+        cache_key = "judgments/" + entry.case_url.lstrip("/").replace("/", "_") + ".html"
         html = await self._fetch_cached(url, cache_key)
         soup = BeautifulSoup(html, "lxml")
 
         metadata = self._extract_metadata(soup)
 
-        content_div = soup.select_one(
-            "#document-content, .document-content, article"
-        )
+        content_div = soup.select_one("#document-content, .document-content, article")
         full_text = ""
         full_html = ""
         if content_div:
@@ -211,9 +198,7 @@ class NigeriaLIICrawler:
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _extract_year_links(
-        self, soup: BeautifulSoup, court: Court
-    ) -> dict[int, str]:
+    def _extract_year_links(self, soup: BeautifulSoup, court: Court) -> dict[int, str]:
         """Extract year navigation links from the court index page."""
         years: dict[int, str] = {}
         for link in soup.select("a[href]"):
@@ -228,9 +213,7 @@ class NigeriaLIICrawler:
                 continue
         return years
 
-    async def _crawl_year_listing(
-        self, court: Court, year: int, url: str
-    ) -> list[CaseListEntry]:
+    async def _crawl_year_listing(self, court: Court, year: int, url: str) -> list[CaseListEntry]:
         """Crawl a single year's listing page (handles pagination)."""
         cache_key = f"{court.value}/{year}/listing.html"
         html = await self._fetch_cached(url, cache_key)
@@ -262,9 +245,7 @@ class NigeriaLIICrawler:
 
         return entries
 
-    def _parse_listing_row(
-        self, row: BeautifulSoup, court: Court
-    ) -> CaseListEntry | None:
+    def _parse_listing_row(self, row: BeautifulSoup, court: Court) -> CaseListEntry | None:
         """Parse a single table row from a year listing page."""
         link = row.select_one("a[href*='/akn/']")
         if not link:
@@ -333,13 +314,9 @@ class NigeriaLIICrawler:
             elif "judge" in key:
                 judge_links = dd.select("a")  # type: ignore[union-attr]
                 if judge_links:
-                    metadata["judges"] = [
-                        a.get_text(strip=True) for a in judge_links
-                    ]
+                    metadata["judges"] = [a.get_text(strip=True) for a in judge_links]
                 else:
-                    metadata["judges"] = [
-                        j.strip() for j in value.split(",") if j.strip()
-                    ]
+                    metadata["judges"] = [j.strip() for j in value.split(",") if j.strip()]
             elif "language" in key:
                 metadata["language"] = value
 
@@ -373,9 +350,7 @@ class NigeriaLIICrawler:
 
             client = self._client
             if client is None:
-                raise RuntimeError(
-                    "NigeriaLIICrawler must be used as an async context manager"
-                )
+                raise RuntimeError("NigeriaLIICrawler must be used as an async context manager")
 
             logger.debug("crawler.fetch", url=url)
             response = await client.get(url)

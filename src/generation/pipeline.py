@@ -64,14 +64,16 @@ class MotionGenerationPipeline:
 
         # Step 2: Generate arguments in parallel
         arg_tasks = [
-            self._generate_argument(i + 1, issue, request)
-            for i, issue in enumerate(issues)
+            self._generate_argument(i + 1, issue, request) for i, issue in enumerate(issues)
         ]
         arguments = await asyncio.gather(*arg_tasks)
-        audit.record("arguments_generated", {
-            "count": len(arguments),
-            "previews": [a.argument_text[:200] for a in arguments],
-        })
+        audit.record(
+            "arguments_generated",
+            {
+                "count": len(arguments),
+                "previews": [a.argument_text[:200] for a in arguments],
+            },
+        )
 
         # Step 3: Citation verification
         all_citations = []
@@ -79,13 +81,15 @@ class MotionGenerationPipeline:
             all_citations.extend(arg.cases_cited)
         verified_citations = await self.verifier.verify_batch(all_citations)
         self._update_citation_status(arguments, verified_citations)
-        audit.record("citations_verified", {
-            "total": len(verified_citations),
-            "results": [
-                {"name": c.get("name"), "status": c.get("status")}
-                for c in verified_citations
-            ],
-        })
+        audit.record(
+            "citations_verified",
+            {
+                "total": len(verified_citations),
+                "results": [
+                    {"name": c.get("name"), "status": c.get("status")} for c in verified_citations
+                ],
+            },
+        )
 
         # Step 3b: Strength assessment + counter-arguments in parallel
         strength_task = self._assess_argument_strength(arguments, request)
@@ -123,12 +127,19 @@ class MotionGenerationPipeline:
         motion_paper = self._assemble_motion_paper(request, prayers, grounds)
         affidavit = self._assemble_affidavit(request, affidavit_paragraphs)
         written_address = self._assemble_written_address(
-            request, issues, list(arguments), introduction, conclusion,
+            request,
+            issues,
+            list(arguments),
+            introduction,
+            conclusion,
         )
-        audit.record("documents_assembled", {
-            "issues_count": len(issues),
-            "arguments_count": len(arguments),
-        })
+        audit.record(
+            "documents_assembled",
+            {
+                "issues_count": len(issues),
+                "arguments_count": len(arguments),
+            },
+        )
 
         return GenerationResult(
             motion_paper=motion_paper,
@@ -223,7 +234,10 @@ Return ONLY a JSON array of issue strings. No markdown, no explanation.
     # ── Step 2: Argument generation ────────────────────────────────────────────
 
     async def _generate_argument(
-        self, issue_number: int, issue_text: str, req: GenerationRequest,
+        self,
+        issue_number: int,
+        issue_text: str,
+        req: GenerationRequest,
     ) -> ArgumentSection:
         """Generate IRAC-structured argument for a single issue using Sonnet."""
         relevant_cases = self._select_cases_for_issue(issue_text, req.selected_cases)
@@ -302,7 +316,8 @@ Return ONLY the argument text. No JSON, no markdown headers."""
     # ── Step 3b: Strength assessment ───────────────────────────────────────────
 
     async def _assess_argument_strength(
-        self, arguments: list[ArgumentSection] | tuple[ArgumentSection, ...],
+        self,
+        arguments: list[ArgumentSection] | tuple[ArgumentSection, ...],
         req: GenerationRequest,
     ) -> list[dict]:
         """Evaluate each argument from a judicial perspective using Haiku."""
@@ -355,7 +370,8 @@ Return JSON only:
                         + assessment.get("factual_applicability", 5)
                         + assessment.get("authority_strength", 5)
                         + assessment.get("vulnerability", 5)
-                    ) / 4,
+                    )
+                    / 4,
                     1,
                 )
             except (json.JSONDecodeError, KeyError):
@@ -371,13 +387,13 @@ Return JSON only:
     # ── Step 3c: Counter-arguments ─────────────────────────────────────────────
 
     async def _generate_counter_arguments(
-        self, arguments: list[ArgumentSection] | tuple[ArgumentSection, ...],
+        self,
+        arguments: list[ArgumentSection] | tuple[ArgumentSection, ...],
         req: GenerationRequest,
     ) -> list[dict]:
         """Analyse each issue from the opposing party's perspective using Haiku."""
         args_summary = "\n\n".join(
-            f"ISSUE {a.issue_number}: {a.issue_text}\n"
-            f"Argument: {a.argument_text[:500]}"
+            f"ISSUE {a.issue_number}: {a.issue_text}\n" f"Argument: {a.argument_text[:500]}"
             for a in arguments
         )
 
@@ -420,7 +436,9 @@ Return JSON:
     # ── Step 4: Supporting sections ────────────────────────────────────────────
 
     async def _generate_prayers(
-        self, req: GenerationRequest, issues: list[str],
+        self,
+        req: GenerationRequest,
+        issues: list[str],
     ) -> list[str]:
         """Generate numbered prayers (reliefs sought) using Haiku."""
         prompt = f"""You are a Nigerian litigation lawyer drafting prayers \
@@ -452,7 +470,9 @@ Return ONLY a JSON array of prayer strings.
         return self._parse_json_list(response.content[0].text)
 
     async def _generate_grounds(
-        self, req: GenerationRequest, issues: list[str],
+        self,
+        req: GenerationRequest,
+        issues: list[str],
     ) -> list[str]:
         """Generate grounds of application using Haiku."""
         prompt = f"""You are a Nigerian litigation lawyer drafting grounds \
@@ -507,7 +527,9 @@ Return ONLY a JSON array of paragraph strings (without "THAT" prefix).
         return self._parse_json_list(response.content[0].text)
 
     async def _generate_introduction(
-        self, req: GenerationRequest, issues: list[str],
+        self,
+        req: GenerationRequest,
+        issues: list[str],
     ) -> str:
         """Generate the introduction section of the Written Address using Haiku."""
         prompt = f"""You are a Nigerian litigation lawyer writing the introduction \
@@ -543,9 +565,7 @@ Return ONLY the introduction text, no JSON."""
         arguments: list[ArgumentSection] | tuple[ArgumentSection, ...],
     ) -> str:
         """Generate the conclusion section using Haiku."""
-        issues_summary = "\n".join(
-            f"Issue {i+1}: {iss}" for i, iss in enumerate(issues)
-        )
+        issues_summary = "\n".join(f"Issue {i+1}: {iss}" for i, iss in enumerate(issues))
         prompt = f"""You are a Nigerian litigation lawyer writing the conclusion \
 of a Written Address for a {req.motion_type} motion.
 
@@ -573,7 +593,10 @@ Return ONLY the conclusion text, no JSON."""
     # ── Step 5: Document assembly ──────────────────────────────────────────────
 
     def _assemble_motion_paper(
-        self, req: GenerationRequest, prayers: list[str], grounds: list[str],
+        self,
+        req: GenerationRequest,
+        prayers: list[str],
+        grounds: list[str],
     ) -> MotionPaper:
         return MotionPaper(
             court_name=f"IN THE {req.court_name.upper()}",
@@ -595,7 +618,9 @@ Return ONLY the conclusion text, no JSON."""
         )
 
     def _assemble_affidavit(
-        self, req: GenerationRequest, paragraphs: list[str],
+        self,
+        req: GenerationRequest,
+        paragraphs: list[str],
     ) -> SupportingAffidavit:
         court_header = (
             f"IN THE {req.court_name.upper()}\n"
@@ -688,8 +713,7 @@ Return ONLY the conclusion text, no JSON."""
             segment = c.get("matched_segment", {})
             content = segment.get("content", "") if isinstance(segment, dict) else ""
             lines.append(
-                f"CASE {i}: {name} {citation} ({court})\n"
-                f"Relevant excerpt:\n{content[:500]}\n"
+                f"CASE {i}: {name} {citation} ({court})\n" f"Relevant excerpt:\n{content[:500]}\n"
             )
         return "\n".join(lines)
 
@@ -727,7 +751,8 @@ Return ONLY the conclusion text, no JSON."""
 
     @staticmethod
     def _extract_citations_from_text(
-        text: str, available_cases: list[dict],
+        text: str,
+        available_cases: list[dict],
     ) -> list[dict]:
         """Extract case citations from generated text and match to available cases."""
         citations = []
@@ -743,28 +768,33 @@ Return ONLY the conclusion text, no JSON."""
                 if len(base_name) > 5 and base_name.lower() in text.lower():
                     # Find what principle is attributed
                     principle = _extract_principle_near_case(text, base_name)
-                    citations.append({
-                        "name": name,
-                        "citation": case.get("citation", ""),
-                        "case_id": case.get("case_id", ""),
-                        "principle_cited": principle,
-                    })
+                    citations.append(
+                        {
+                            "name": name,
+                            "citation": case.get("citation", ""),
+                            "case_id": case.get("case_id", ""),
+                            "principle_cited": principle,
+                        }
+                    )
                     break
         return citations
 
     @staticmethod
     def _extract_statutes_from_text(
-        text: str, statutes: list[dict],
+        text: str,
+        statutes: list[dict],
     ) -> list[dict]:
         """Extract statute references from generated text."""
         found = []
         for s in statutes:
             section = s.get("section", "")
             if section and section.lower() in text.lower():
-                found.append({
-                    "section": section,
-                    "act": s.get("act", s.get("title", "")),
-                })
+                found.append(
+                    {
+                        "section": section,
+                        "act": s.get("act", s.get("title", "")),
+                    }
+                )
         return found
 
     @staticmethod
@@ -817,7 +847,7 @@ def _extract_principle_near_case(text: str, case_name: str) -> str:
         return ""
 
     # Look in the ~500 chars after the case name for a holding
-    region = text[pos:pos + 500]
+    region = text[pos : pos + 500]
 
     # Common patterns: "held that", "stated that", "decided that"
     patterns = [

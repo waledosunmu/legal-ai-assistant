@@ -23,12 +23,12 @@ _DAMPING: float = 0.85
 class CitationEdge:
     """A directed edge in the citation graph."""
 
-    citing_case_id: str         # The case that cites
-    cited_case_id: str | None   # Resolved corpus ID (None if unknown)
-    cited_case_name: str        # Name as it appears in the citing judgment
-    cited_citation: str         # Raw citation string
-    treatment: str              # followed / distinguished / overruled / mentioned
-    context: str                # Sentence where the citation appears
+    citing_case_id: str  # The case that cites
+    cited_case_id: str | None  # Resolved corpus ID (None if unknown)
+    cited_case_name: str  # Name as it appears in the citing judgment
+    cited_citation: str  # Raw citation string
+    treatment: str  # followed / distinguished / overruled / mentioned
+    context: str  # Sentence where the citation appears
 
 
 class CitationGraphBuilder:
@@ -111,18 +111,13 @@ class CitationGraphBuilder:
         in_degree: dict[str, int] = {}
         for edge in all_edges:
             if edge.cited_case_id is not None:
-                in_degree[edge.cited_case_id] = (
-                    in_degree.get(edge.cited_case_id, 0) + 1
-                )
+                in_degree[edge.cited_case_id] = in_degree.get(edge.cited_case_id, 0) + 1
 
         if not in_degree:
             return {}
 
         max_count = max(in_degree.values())
-        return {
-            case_id: round(count / max_count, 4)
-            for case_id, count in in_degree.items()
-        }
+        return {case_id: round(count / max_count, 4) for case_id, count in in_degree.items()}
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 

@@ -64,7 +64,12 @@ class TestDenseExpansion:
     async def test_hyde_generated_when_anthropic_provided(self) -> None:
         voyage = _make_voyage([[0.1] * 1024, [0.2] * 1024, [0.3] * 1024])
         anthropic = _make_anthropic("The court held that jurisdiction requires...")
-        expander = QueryExpander(voyage_client=voyage, anthropic_client=anthropic, enable_step_back=True, enable_hyde=True)
+        expander = QueryExpander(
+            voyage_client=voyage,
+            anthropic_client=anthropic,
+            enable_step_back=True,
+            enable_hyde=True,
+        )
         # Provide a step_back so we already have 2 variants before HyDE
         parsed = _parsed("grounds for dismissal", step_back="conditions for dismissal of a suit")
         result = await expander.expand(parsed)
@@ -94,9 +99,11 @@ class TestDenseExpansion:
         expander = QueryExpander(voyage_client=voyage)
         await expander.expand(_parsed("test"))
         call_kwargs = voyage.embed.call_args
-        assert call_kwargs.kwargs.get("input_type") == "query" or \
-               call_kwargs[1].get("input_type") == "query" or \
-               "query" in str(call_kwargs)
+        assert (
+            call_kwargs.kwargs.get("input_type") == "query"
+            or call_kwargs[1].get("input_type") == "query"
+            or "query" in str(call_kwargs)
+        )
 
     @pytest.mark.asyncio
     async def test_hyde_failure_falls_back_gracefully(self) -> None:
@@ -174,7 +181,9 @@ class TestSparseExpansion:
     async def test_max_three_sparse_variants(self) -> None:
         voyage = _make_voyage([[0.1] * 1024] * 3)
         expander = QueryExpander(voyage_client=voyage)
-        parsed = _parsed("test", concepts=["jurisdiction", "estoppel"], case_refs=["(2000) 1 NWLR 5"])
+        parsed = _parsed(
+            "test", concepts=["jurisdiction", "estoppel"], case_refs=["(2000) 1 NWLR 5"]
+        )
         result = await expander.expand(parsed)
         assert len(result.sparse_texts) <= 3
 

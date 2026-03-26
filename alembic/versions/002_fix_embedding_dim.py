@@ -33,9 +33,7 @@ def upgrade() -> None:
         "USING NULL"  # existing rows have NULL embeddings; safe to truncate
     )
     op.execute(
-        "ALTER TABLE statute_segments "
-        "ALTER COLUMN embedding TYPE vector(1024) "
-        "USING NULL"
+        "ALTER TABLE statute_segments " "ALTER COLUMN embedding TYPE vector(1024) " "USING NULL"
     )
 
     # ── Rebuild HNSW indexes ───────────────────────────────────────────────────
@@ -51,10 +49,7 @@ def upgrade() -> None:
     """)
 
     # ── Add metadata column to citation_graph ─────────────────────────────────
-    op.execute(
-        "ALTER TABLE citation_graph "
-        "ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'"
-    )
+    op.execute("ALTER TABLE citation_graph " "ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'")
 
 
 def downgrade() -> None:
@@ -62,14 +57,10 @@ def downgrade() -> None:
     op.execute("DROP INDEX IF EXISTS idx_statutes_embedding")
 
     op.execute(
-        "ALTER TABLE case_segments "
-        "ALTER COLUMN embedding TYPE vector(1536) "
-        "USING NULL"
+        "ALTER TABLE case_segments " "ALTER COLUMN embedding TYPE vector(1536) " "USING NULL"
     )
     op.execute(
-        "ALTER TABLE statute_segments "
-        "ALTER COLUMN embedding TYPE vector(1536) "
-        "USING NULL"
+        "ALTER TABLE statute_segments " "ALTER COLUMN embedding TYPE vector(1536) " "USING NULL"
     )
 
     op.execute("""
@@ -83,6 +74,4 @@ def downgrade() -> None:
         WITH (m = 16, ef_construction = 64)
     """)
 
-    op.execute(
-        "ALTER TABLE citation_graph DROP COLUMN IF EXISTS metadata"
-    )
+    op.execute("ALTER TABLE citation_graph DROP COLUMN IF EXISTS metadata")

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 # ── Query understanding ────────────────────────────────────────────────────────
 
 
@@ -41,17 +40,17 @@ class ExpandedQueries:
 class CandidateResult:
     """A single case segment surfaced by Stage 1 and scored by Stage 2."""
 
-    case_id: str          # UUID string
-    segment_id: str       # UUID string
-    segment_type: str     # e.g. "RATIO", "HOLDING", "ANALYSIS"
-    content: str          # segment text
+    case_id: str  # UUID string
+    segment_id: str  # UUID string
+    segment_type: str  # e.g. "RATIO", "HOLDING", "ANALYSIS"
+    content: str  # segment text
     court: str = ""
     year: int | None = None
     opinion_type: str = "LEAD"
-    dense_rank: int | None = None    # rank within dense results (1-indexed); None if not found
-    sparse_rank: int | None = None   # rank within sparse results (1-indexed); None if not found
-    fusion_score: float = 0.0        # raw RRF score
-    boosted_score: float = 0.0       # after legal metadata boosts
+    dense_rank: int | None = None  # rank within dense results (1-indexed); None if not found
+    sparse_rank: int | None = None  # rank within sparse results (1-indexed); None if not found
+    fusion_score: float = 0.0  # raw RRF score
+    boosted_score: float = 0.0  # after legal metadata boosts
 
 
 # ── Final search results ───────────────────────────────────────────────────────
@@ -67,12 +66,12 @@ class SearchResult:
     citation: str | None
     court: str
     year: int | None
-    relevance_score: float           # final blended score (LLM + fusion)
-    relevance_explanation: str       # ≤ 150 char explanation from LLM reranker
-    authority_score: int             # from case_authority_scores materialized view
+    relevance_score: float  # final blended score (LLM + fusion)
+    relevance_explanation: str  # ≤ 150 char explanation from LLM reranker
+    authority_score: int  # from case_authority_scores materialized view
     times_cited: int
-    matched_segment: dict            # {"type": ..., "content": ...}
-    verification_status: str = "verified"   # "verified" | "unverified"
+    matched_segment: dict  # {"type": ..., "content": ...}
+    verification_status: str = "verified"  # "verified" | "unverified"
 
 
 # ── Retrieval configuration ────────────────────────────────────────────────────
@@ -83,48 +82,54 @@ class RetrievalConfig:
     """Tunable parameters for the retrieval pipeline."""
 
     # Stage 1 — search limits
-    dense_limit: int = 60    # candidates per dense variant
-    sparse_limit: int = 60   # candidates per sparse variant
+    dense_limit: int = 60  # candidates per dense variant
+    sparse_limit: int = 60  # candidates per sparse variant
 
     # Stage 2 — RRF + boosting
     rrf_k: int = 60
     top_candidates: int = 30  # candidates passed to reranker
 
     # Stage 3 — reranking
-    top_results: int = 15     # final results before slicing to max_results
+    top_results: int = 15  # final results before slicing to max_results
     llm_weight: float = 0.70
     fusion_weight: float = 0.30
 
     # Court boosting
-    court_boosts: dict[str, float] = field(default_factory=lambda: {
-        "NGSC": 1.15,
-        "NGCA": 1.08,
-        "NGFCHC": 1.0,
-        "NGLAHC": 1.0,
-        "NGKNHC": 1.0,
-        "NGBAHC": 1.0,
-        "NGBEHC": 1.0,
-    })
+    court_boosts: dict[str, float] = field(
+        default_factory=lambda: {
+            "NGSC": 1.15,
+            "NGCA": 1.08,
+            "NGFCHC": 1.0,
+            "NGLAHC": 1.0,
+            "NGKNHC": 1.0,
+            "NGBAHC": 1.0,
+            "NGBEHC": 1.0,
+        }
+    )
 
     # Segment type boosting
-    segment_boosts: dict[str, float] = field(default_factory=lambda: {
-        "RATIO": 1.20,
-        "HOLDING": 1.15,
-        "ANALYSIS": 1.0,
-        "FACTS": 0.9,
-        "ISSUE": 1.05,
-        "OBITER": 0.8,
-        "ORDER": 0.95,
-        "INTRODUCTION": 0.85,
-        "CAPTION": 0.7,
-    })
+    segment_boosts: dict[str, float] = field(
+        default_factory=lambda: {
+            "RATIO": 1.20,
+            "HOLDING": 1.15,
+            "ANALYSIS": 1.0,
+            "FACTS": 0.9,
+            "ISSUE": 1.05,
+            "OBITER": 0.8,
+            "ORDER": 0.95,
+            "INTRODUCTION": 0.85,
+            "CAPTION": 0.7,
+        }
+    )
 
     # Opinion type boosting
-    opinion_boosts: dict[str, float] = field(default_factory=lambda: {
-        "LEAD": 1.0,
-        "CONCURRING": 0.7,
-        "DISSENTING": 0.4,
-    })
+    opinion_boosts: dict[str, float] = field(
+        default_factory=lambda: {
+            "LEAD": 1.0,
+            "CONCURRING": 0.7,
+            "DISSENTING": 0.4,
+        }
+    )
 
     # Recency decay — half-life in years
     recency_half_life: int = 15

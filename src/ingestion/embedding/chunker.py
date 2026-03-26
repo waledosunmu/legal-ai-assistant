@@ -11,9 +11,9 @@ from ingestion.segmentation.models import SegmentType
 class EmbeddingChunk:
     """A single text chunk ready for embedding and vector storage."""
 
-    chunk_id: str               # Unique: "{case_id}__{segment_type}_{index}"
+    chunk_id: str  # Unique: "{case_id}__{segment_type}_{index}"
     case_id: str
-    segment_type: str           # Matches DB segment_type enum string
+    segment_type: str  # Matches DB segment_type enum string
     content: str
     embedding: list[float] | None = None
 
@@ -28,14 +28,14 @@ class EmbeddingChunk:
 # ── Retrieval weight per segment type ─────────────────────────────────────────
 # Higher weight = more likely to appear at the top of search results.
 _RETRIEVAL_WEIGHTS: dict[str, float] = {
-    "ratio":    2.0,
-    "holding":  1.8,
-    "obiter":   1.3,
-    "orders":   1.3,
-    "issues":   1.2,
-    "facts":    1.0,
+    "ratio": 2.0,
+    "holding": 1.8,
+    "obiter": 1.3,
+    "orders": 1.3,
+    "issues": 1.2,
+    "facts": 1.0,
     "analysis": 1.0,
-    "caption":  0.5,
+    "caption": 0.5,
     "background": 0.7,
 }
 
@@ -76,11 +76,11 @@ class LegalTextChunker:
         """
         case_id = segmented_judgment["case_id"]
         meta = {
-            "court":       segmented_judgment.get("court"),
-            "year":        segmented_judgment.get("year"),
+            "court": segmented_judgment.get("court"),
+            "year": segmented_judgment.get("year"),
             "area_of_law": segmented_judgment.get("area_of_law") or [],
-            "case_name":   segmented_judgment.get("case_name"),
-            "citation":    segmented_judgment.get("citation"),
+            "case_name": segmented_judgment.get("case_name"),
+            "citation": segmented_judgment.get("citation"),
         }
 
         chunks: list[EmbeddingChunk] = []
@@ -102,18 +102,12 @@ class LegalTextChunker:
         # 3. Other segments from the segments list
         facts_added = False
         for seg in segmented_judgment.get("segments", []):
-            seg_type = (
-                seg.get("segment_type")
-                if isinstance(seg, dict)
-                else seg.segment_type.value
-            )
+            seg_type = seg.get("segment_type") if isinstance(seg, dict) else seg.segment_type.value
             content = seg.get("content") if isinstance(seg, dict) else seg.content
 
             if seg_type in (SegmentType.FACTS.value, SegmentType.BACKGROUND.value):
                 if not facts_added:
-                    chunks.append(
-                        self._make_chunk(case_id, "facts", content[:2000], 0, meta)
-                    )
+                    chunks.append(self._make_chunk(case_id, "facts", content[:2000], 0, meta))
                     facts_added = True
 
             elif seg_type == SegmentType.ANALYSIS.value:
@@ -125,9 +119,7 @@ class LegalTextChunker:
                 SegmentType.OBITER.value,
                 SegmentType.CAPTION.value,
             ):
-                chunks.append(
-                    self._make_chunk(case_id, seg_type, content, 0, meta)
-                )
+                chunks.append(self._make_chunk(case_id, seg_type, content, 0, meta))
 
         return chunks
 

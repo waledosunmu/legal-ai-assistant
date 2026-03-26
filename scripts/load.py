@@ -29,11 +29,10 @@ import structlog
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from config import settings  # noqa: E402
-from db import get_pool, close_pool  # noqa: E402
-from ingestion.loaders.db_loader import BulkCaseLoader  # noqa: E402
+from db import close_pool, get_pool  # noqa: E402
 from ingestion.citations.extractor import NigerianCitationExtractor  # noqa: E402
 from ingestion.citations.graph_builder import CitationGraphBuilder  # noqa: E402
+from ingestion.loaders.db_loader import BulkCaseLoader  # noqa: E402
 
 logger = structlog.get_logger(__name__)
 
@@ -155,9 +154,7 @@ async def _run_load(
                         )
                         cases_errors += 1
 
-            click.echo(
-                f"  cases: {cases_loaded} loaded, {cases_errors} errors"
-            )
+            click.echo(f"  cases: {cases_loaded} loaded, {cases_errors} errors")
             total_cases_loaded += cases_loaded
             total_cases_errors += cases_errors
 
@@ -249,8 +246,8 @@ async def _run_graph(
     all_files = sorted(judgments_dir.glob("*.jsonl"))
 
     all_judgments: list[dict] = []
-    case_registry: dict[str, str] = {}       # slug → case_name
-    citation_to_slug: dict[str, str] = {}    # "[2017] NGSC 23" → slug
+    case_registry: dict[str, str] = {}  # slug → case_name
+    citation_to_slug: dict[str, str] = {}  # "[2017] NGSC 23" → slug
 
     for jfile in all_files:
         with jfile.open(encoding="utf-8") as f:
@@ -336,10 +333,12 @@ async def _run_graph(
                                 cited_uuid,
                                 edge.treatment.upper(),
                                 edge.context,
-                                json.dumps({
-                                    "cited_case_name": edge.cited_case_name,
-                                    "citation_text": edge.cited_citation,
-                                }),
+                                json.dumps(
+                                    {
+                                        "cited_case_name": edge.cited_case_name,
+                                        "citation_text": edge.cited_citation,
+                                    }
+                                ),
                             )
                             total_edges += 1
                 except Exception as exc:
@@ -353,9 +352,7 @@ async def _run_graph(
         # Refresh materialized view outside any transaction
         click.echo("Refreshing case_authority_scores materialized view...")
         async with pool.acquire() as conn:
-            await conn.execute(
-                "REFRESH MATERIALIZED VIEW CONCURRENTLY case_authority_scores"
-            )
+            await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY case_authority_scores")
 
     finally:
         await close_pool()
@@ -433,32 +430,34 @@ async def _run_status(data_dir: Path) -> None:
                 )
 
             report[court] = {
-                "file_cases":    int(file_cases),
-                "db_cases":      int(db_cases),
-                "file_chunks":   int(file_chunks),
-                "db_segments":   int(db_segments),
+                "file_cases": int(file_cases),
+                "db_cases": int(db_cases),
+                "file_chunks": int(file_chunks),
+                "db_segments": int(db_segments),
                 "db_with_embed": int(db_with_embedding),
-                "db_edges":      int(db_edges),
+                "db_edges": int(db_edges),
             }
 
         # Totals
         async with pool.acquire() as conn:
             total_cases = int(await conn.fetchval("SELECT COUNT(*) FROM cases"))
             total_segments = int(await conn.fetchval("SELECT COUNT(*) FROM case_segments"))
-            total_embedded = int(await conn.fetchval(
-                "SELECT COUNT(*) FROM case_segments WHERE embedding IS NOT NULL"
-            ))
+            total_embedded = int(
+                await conn.fetchval(
+                    "SELECT COUNT(*) FROM case_segments WHERE embedding IS NOT NULL"
+                )
+            )
             total_edges = int(await conn.fetchval("SELECT COUNT(*) FROM citation_graph"))
 
         report["_totals"] = {
-            "db_cases":           total_cases,
-            "db_segments":        total_segments,
-            "db_with_embedding":  total_embedded,
-            "db_edges":           total_edges,
-            "phase0_cases_target":  3000,
-            "phase0_edges_target":  10000,
-            "cases_gap":          max(0, 3000 - total_cases),
-            "edges_gap":          max(0, 10000 - total_edges),
+            "db_cases": total_cases,
+            "db_segments": total_segments,
+            "db_with_embedding": total_embedded,
+            "db_edges": total_edges,
+            "phase0_cases_target": 3000,
+            "phase0_edges_target": 10000,
+            "cases_gap": max(0, 3000 - total_cases),
+            "edges_gap": max(0, 10000 - total_edges),
         }
 
     finally:

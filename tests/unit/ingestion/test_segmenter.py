@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from ingestion.citations.extractor import ExtractedCitation
 from ingestion.citations.graph_builder import CitationEdge, CitationGraphBuilder
 from ingestion.segmentation.llm_segmenter import LLMSegmenter
@@ -13,8 +11,8 @@ from ingestion.segmentation.models import JudgmentSegment, SegmentType
 from ingestion.segmentation.nlp_rules import NLPSegmentClassifier
 from ingestion.segmentation.structural import StructuralSegmenter
 
-
 # ── StructuralSegmenter ────────────────────────────────────────────────────────
+
 
 class TestStructuralSegmenterParagraphSplit:
     def test_single_paragraph(self):
@@ -170,6 +168,7 @@ Accordingly, the appeal is dismissed with costs assessed at N100,000."""
 
 # ── NLPSegmentClassifier ───────────────────────────────────────────────────────
 
+
 class TestNLPSegmentClassifierHeading:
     def test_all_caps_short_is_heading(self):
         assert NLPSegmentClassifier._is_heading("BACKGROUND") is True
@@ -181,9 +180,12 @@ class TestNLPSegmentClassifierHeading:
         assert NLPSegmentClassifier._is_heading("This is a normal paragraph.") is False
 
     def test_long_all_caps_not_heading(self):
-        assert NLPSegmentClassifier._is_heading(
-            "THIS IS A VERY LONG HEADING THAT HAS MORE THAN TEN WORDS IN IT"
-        ) is False
+        assert (
+            NLPSegmentClassifier._is_heading(
+                "THIS IS A VERY LONG HEADING THAT HAS MORE THAN TEN WORDS IN IT"
+            )
+            is False
+        )
 
     def test_empty_string_not_heading(self):
         assert NLPSegmentClassifier._is_heading("") is False
@@ -238,8 +240,7 @@ class TestNLPSegmentClassifierReclassify:
     def test_confidence_capped_at_0_9(self):
         clf = NLPSegmentClassifier()
         content = (
-            "HELD In the result this appeal is dismissed. "
-            "We hold that the decision is upheld."
+            "HELD In the result this appeal is dismissed. " "We hold that the decision is upheld."
         )
         seg = self._make_seg(content, confidence=0.3)
         result = clf.reclassify([seg])
@@ -247,6 +248,7 @@ class TestNLPSegmentClassifierReclassify:
 
 
 # ── LLMSegmenter ──────────────────────────────────────────────────────────────
+
 
 def _make_mock_client(response_text: str) -> MagicMock:
     """Return a mock Anthropic client that returns response_text."""
@@ -322,6 +324,7 @@ class TestLLMSegmenter:
 
 # ── CitationGraphBuilder ───────────────────────────────────────────────────────
 
+
 def _make_citation(
     raw_text: str,
     case_name: str | None,
@@ -346,7 +349,12 @@ class TestCitationGraphBuilder:
     def test_build_edges_creates_one_edge_per_unique_citation(self):
         builder = CitationGraphBuilder()
         citations = [
-            _make_citation("(2020) 1 NWLR (Pt.100) 1", "Malami v. Ohikhuare", "The court followed this authority.", 0),
+            _make_citation(
+                "(2020) 1 NWLR (Pt.100) 1",
+                "Malami v. Ohikhuare",
+                "The court followed this authority.",
+                0,
+            ),
             _make_citation("(2019) 2 SC 50", "Eze v. Okafor", "The case was distinguished.", 100),
         ]
         edges = builder.build_edges("case_001", citations, {})
@@ -361,25 +369,33 @@ class TestCitationGraphBuilder:
 
     def test_treatment_followed(self):
         builder = CitationGraphBuilder()
-        citation = _make_citation("(2020) 5 SC 10", "X v. Y", "The court followed this decision.", 0)
+        citation = _make_citation(
+            "(2020) 5 SC 10", "X v. Y", "The court followed this decision.", 0
+        )
         edges = builder.build_edges("case_001", [citation], {})
         assert edges[0].treatment == "followed"
 
     def test_treatment_distinguished(self):
         builder = CitationGraphBuilder()
-        citation = _make_citation("(2018) 3 SC 5", "A v. B", "The case was distinguished from the present facts.", 0)
+        citation = _make_citation(
+            "(2018) 3 SC 5", "A v. B", "The case was distinguished from the present facts.", 0
+        )
         edges = builder.build_edges("case_001", [citation], {})
         assert edges[0].treatment == "distinguished"
 
     def test_treatment_overruled(self):
         builder = CitationGraphBuilder()
-        citation = _make_citation("(2005) 1 SC 1", "C v. D", "The earlier decision was overruled.", 0)
+        citation = _make_citation(
+            "(2005) 1 SC 1", "C v. D", "The earlier decision was overruled.", 0
+        )
         edges = builder.build_edges("case_001", [citation], {})
         assert edges[0].treatment == "overruled"
 
     def test_treatment_default_mentioned(self):
         builder = CitationGraphBuilder()
-        citation = _make_citation("(2010) 2 SC 20", "E v. F", "The court noted this case in passing.", 0)
+        citation = _make_citation(
+            "(2010) 2 SC 20", "E v. F", "The court noted this case in passing.", 0
+        )
         edges = builder.build_edges("case_001", [citation], {})
         assert edges[0].treatment == "mentioned"
 

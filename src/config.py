@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     embedding_api_key: str = ""
     embedding_model: str = "voyage-law-2"  # Updated after Week 4 evaluation
-    embedding_dimensions: int = 1024       # voyage-law-2 outputs 1024-dim vectors
+    embedding_dimensions: int = 1024  # voyage-law-2 outputs 1024-dim vectors
 
     # Generation models
     generation_model: str = "claude-sonnet-4-6"

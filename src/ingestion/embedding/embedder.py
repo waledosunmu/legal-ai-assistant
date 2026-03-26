@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -47,9 +46,7 @@ class CorpusEmbedder:
         self.model = model
         self.batch_size = batch_size
         self.sleep_between_batches = sleep_between_batches
-        self._client: voyageai.AsyncClient = _client or voyageai.AsyncClient(
-            api_key=api_key
-        )
+        self._client: voyageai.AsyncClient = _client or voyageai.AsyncClient(api_key=api_key)
 
     async def embed_chunks(
         self,
@@ -88,7 +85,7 @@ class CorpusEmbedder:
                         await asyncio.sleep(wait)
                     else:
                         raise
-            for chunk, vec in zip(batch, vectors):
+            for chunk, vec in zip(batch, vectors, strict=True):
                 embedded.append(replace(chunk, embedding=vec))
             logger.debug(
                 "embedder.batch_done",
@@ -136,7 +133,7 @@ class CorpusEmbedder:
         result = await self.embed_chunks(chunks)
         newly_embedded = sum(
             1
-            for orig, new in zip(chunks, result)
+            for orig, new in zip(chunks, result, strict=True)
             if orig.embedding is None and new.embedding is not None
         )
 
@@ -144,16 +141,16 @@ class CorpusEmbedder:
         with output_path.open("w", encoding="utf-8") as f:
             for chunk in result:
                 record = {
-                    "chunk_id":     chunk.chunk_id,
-                    "case_id":      chunk.case_id,
+                    "chunk_id": chunk.chunk_id,
+                    "case_id": chunk.case_id,
                     "segment_type": chunk.segment_type,
-                    "content":      chunk.content,
-                    "embedding":    chunk.embedding,
-                    "court":        chunk.court,
-                    "year":         chunk.year,
-                    "area_of_law":  chunk.area_of_law,
-                    "case_name":    chunk.case_name,
-                    "citation":     chunk.citation,
+                    "content": chunk.content,
+                    "embedding": chunk.embedding,
+                    "court": chunk.court,
+                    "year": chunk.year,
+                    "area_of_law": chunk.area_of_law,
+                    "case_name": chunk.case_name,
+                    "citation": chunk.citation,
                 }
                 f.write(json.dumps(record) + "\n")
 

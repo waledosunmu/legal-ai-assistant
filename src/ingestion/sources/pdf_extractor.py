@@ -34,17 +34,24 @@ class PDFTextExtractor:
         if self._has_content(text, self.MIN_CHARS):
             return text
 
-        logger.debug("pdfplumber yielded %d non-ws chars, trying pymupdf: %s", len(text.strip()), pdf_path.name)
+        logger.debug(
+            "pdfplumber yielded %d non-ws chars, trying pymupdf: %s",
+            len(text.strip()),
+            pdf_path.name,
+        )
         text = self._try_pymupdf(pdf_path)
         if self._has_content(text, self.MIN_CHARS):
             return text
 
-        logger.debug("pymupdf yielded %d non-ws chars, trying OCR: %s", len(text.strip()), pdf_path.name)
+        logger.debug(
+            "pymupdf yielded %d non-ws chars, trying OCR: %s", len(text.strip()), pdf_path.name
+        )
         text = self._try_ocr(pdf_path)
         if not self._has_content(text, self.MIN_CHARS):
             logger.warning(
                 "All extraction methods failed for %s (got %d non-ws chars)",
-                pdf_path.name, len(text.strip()),
+                pdf_path.name,
+                len(text.strip()),
             )
         return text
 
@@ -85,10 +92,11 @@ class PDFTextExtractor:
 
     def _try_ocr(self, pdf_path: Path) -> str:
         try:
+            import io
+
             import fitz  # type: ignore[import]
             import pytesseract  # type: ignore[import]
             from PIL import Image  # type: ignore[import]
-            import io
 
             doc = fitz.open(str(pdf_path))
             pages: list[str] = []

@@ -24,8 +24,7 @@ import hashlib
 import json
 import logging
 import re
-import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import httpx
@@ -36,14 +35,18 @@ logger = logging.getLogger(__name__)
 
 _API_BASE = "https://coa-admin.courtofappeal.gov.ng/api"
 _GDRIVE_DOWNLOAD = "https://drive.google.com/uc?export=download&id={file_id}"
-_GDRIVE_CONFIRM = "https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t"
+_GDRIVE_CONFIRM = (
+    "https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t"
+)
 
 
 # ── Data models ────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class CoAJudgmentRecord:
     """Raw record as returned by the CoA API."""
+
     id: int
     file_no: str
     parties: str
@@ -58,6 +61,7 @@ class CoAJudgmentRecord:
 @dataclass
 class RawCoAJudgment:
     """Normalized judgment for downstream pipeline compatibility."""
+
     case_id: str
     source: str = "NGCA_COA"
     court: str = "NGCA"
@@ -71,6 +75,7 @@ class RawCoAJudgment:
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _extract_gdrive_file_id(url: str) -> str | None:
     """Extract file ID from a Google Drive share URL."""
@@ -137,6 +142,7 @@ def _parse_judges(justice_text: str) -> list[str]:
 
 # ── Main crawler ───────────────────────────────────────────────────────────────
 
+
 class CourtOfAppealCrawler:
     """Crawl judgments from the Nigeria Court of Appeal API.
 
@@ -180,23 +186,27 @@ class CourtOfAppealCrawler:
                     break
 
                 for item in data:
-                    records.append(CoAJudgmentRecord(
-                        id=item["id"],
-                        file_no=(item.get("file_no") or "").strip(),
-                        parties=(item.get("parties") or "").strip(),
-                        justice=(item.get("justice") or "").strip(),
-                        date=(item.get("date") or "").strip(),
-                        subject_matter=item.get("subject_matter"),
-                        substantial_issue=item.get("substantial_issue"),
-                        division=(item.get("division") or "").strip(),
-                        download_link=(item.get("download_link") or "").strip(),
-                    ))
+                    records.append(
+                        CoAJudgmentRecord(
+                            id=item["id"],
+                            file_no=(item.get("file_no") or "").strip(),
+                            parties=(item.get("parties") or "").strip(),
+                            justice=(item.get("justice") or "").strip(),
+                            date=(item.get("date") or "").strip(),
+                            subject_matter=item.get("subject_matter"),
+                            substantial_issue=item.get("substantial_issue"),
+                            division=(item.get("division") or "").strip(),
+                            download_link=(item.get("download_link") or "").strip(),
+                        )
+                    )
 
                 meta = body.get("meta", {}).get("pagination", {})
                 total_pages = meta.get("pageCount", 1)
                 logger.info(
                     "coa.fetch_page page=%d/%d records_so_far=%d",
-                    page, total_pages, len(records),
+                    page,
+                    total_pages,
+                    len(records),
                 )
 
                 if page >= total_pages:
@@ -237,7 +247,9 @@ class CourtOfAppealCrawler:
                     resp = await client.get(url)
 
             if resp.status_code != 200:
-                logger.warning("coa.download_failed record_id=%d status=%d", record.id, resp.status_code)
+                logger.warning(
+                    "coa.download_failed record_id=%d status=%d", record.id, resp.status_code
+                )
                 return None
 
             local_path.write_bytes(resp.content)
@@ -271,9 +283,7 @@ class CourtOfAppealCrawler:
             full_text = ""
             if pdf_path:
                 full_text = self.extractor.extract(pdf_path)
-                logger.info(
-                    "coa.extracted case_id=%s chars=%d", case_id, len(full_text)
-                )
+                logger.info("coa.extracted case_id=%s chars=%d", case_id, len(full_text))
             else:
                 logger.warning("coa.no_pdf case_id=%s", case_id)
 

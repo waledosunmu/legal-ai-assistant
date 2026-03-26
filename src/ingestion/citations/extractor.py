@@ -10,16 +10,16 @@ from dataclasses import dataclass
 class ExtractedCitation:
     """A single legal citation extracted from judgment text."""
 
-    raw_text: str                # Matched text as it appears in the judgment
-    case_name: str | None        # e.g. "Adesanya v. President of Nigeria"
+    raw_text: str  # Matched text as it appears in the judgment
+    case_name: str | None  # e.g. "Adesanya v. President of Nigeria"
     year: int | None
-    report_series: str | None    # e.g. "NWLR", "LPELR", "SC"
+    report_series: str | None  # e.g. "NWLR", "LPELR", "SC"
     volume: str | None
-    part: str | None             # e.g. "1748" from "Pt. 1748"
+    part: str | None  # e.g. "1748" from "Pt. 1748"
     page: str | None
-    full_citation: str           # Normalised display string
-    position: int                # Character offset in source text
-    context: str                 # Surrounding sentence (for treatment inference)
+    full_citation: str  # Normalised display string
+    position: int  # Character offset in source text
+    context: str  # Surrounding sentence (for treatment inference)
 
 
 class NigerianCitationExtractor:
@@ -98,8 +98,7 @@ class NigerianCitationExtractor:
 
     # Backwards-look pattern to find "Applicant v. Respondent" before a citation
     _CASE_NAME_PATTERN = re.compile(
-        r"([A-Z][A-Za-z\s&.'()\-]+?)\s+v\.?\s+"
-        r"([A-Z][A-Za-z\s&.'()\-]+?)\s*\(",
+        r"([A-Z][A-Za-z\s&.'()\-]+?)\s+v\.?\s+" r"([A-Z][A-Za-z\s&.'()\-]+?)\s*\(",
     )
 
     def extract_all(self, text: str) -> list[ExtractedCitation]:
@@ -201,7 +200,7 @@ class NigerianCitationExtractor:
         The search region is extended by 1 past cite_pos so the opening
         parenthesis of the citation is included, which the pattern requires.
         """
-        search_region = text[max(0, cite_pos - 200): cite_pos + 1]
+        search_region = text[max(0, cite_pos - 200) : cite_pos + 1]
         match = self._CASE_NAME_PATTERN.search(search_region)
         if match:
             return f"{match.group(1).strip()} v. {match.group(2).strip()}"
@@ -246,21 +245,41 @@ class CitationTreatmentClassifier:
 
     _TREATMENT_KEYWORDS: dict[str, list[str]] = {
         "followed": [
-            "followed", "approved", "adopted", "applied",
-            "in line with", "consistent with", "relying on",
-            "as held in", "as decided in", "in accord with",
-            "on all fours", "same principle", "endorse",
+            "followed",
+            "approved",
+            "adopted",
+            "applied",
+            "in line with",
+            "consistent with",
+            "relying on",
+            "as held in",
+            "as decided in",
+            "in accord with",
+            "on all fours",
+            "same principle",
+            "endorse",
         ],
         "distinguished": [
-            "distinguished", "distinguishable", "different from",
-            "unlike the case of", "does not apply",
-            "inapplicable", "not on all fours", "no parity",
-            "not applicable", "distinguishing",
+            "distinguished",
+            "distinguishable",
+            "different from",
+            "unlike the case of",
+            "does not apply",
+            "inapplicable",
+            "not on all fours",
+            "no parity",
+            "not applicable",
+            "distinguishing",
         ],
         "overruled": [
-            "overruled", "overturned", "reversed",
-            "no longer good law", "departed from",
-            "declined to follow", "per incuriam", "bad law",
+            "overruled",
+            "overturned",
+            "reversed",
+            "no longer good law",
+            "departed from",
+            "declined to follow",
+            "per incuriam",
+            "bad law",
         ],
     }
 

@@ -90,7 +90,9 @@ def run(benchmark: Path, k: int, segments_dir: Path) -> None:
     # Translate benchmark relevant_case_ids (DB UUIDs) → AKN slugs using
     # cases.source_id, which was populated by scripts/backfill_source_id.py.
     import asyncio
+
     import asyncpg
+
     from config import settings
 
     async def _build_uuid_to_slug() -> dict[str, str]:
@@ -114,9 +116,9 @@ def run(benchmark: Path, k: int, segments_dir: Path) -> None:
 
     # Patch benchmark queries to use slug IDs for the embedding eval
     from dataclasses import replace as dc_replace
+
     translated_queries = [
-        dc_replace(q, relevant_case_ids=_translate_ids(q.relevant_case_ids))
-        for q in queries
+        dc_replace(q, relevant_case_ids=_translate_ids(q.relevant_case_ids)) for q in queries
     ]
 
     # Build numpy matrix for cosine similarity search
@@ -126,9 +128,10 @@ def run(benchmark: Path, k: int, segments_dir: Path) -> None:
 
     def retrieve_fn(query_text: str, top_k: int) -> list[str]:
         """Naive cosine similarity retrieval using in-memory numpy index."""
-        from ingestion.embedding.embedder import CorpusEmbedder
         import asyncio
+
         from config import settings
+        from ingestion.embedding.embedder import CorpusEmbedder
 
         embedder = CorpusEmbedder(
             model=settings.embedding_model,
@@ -169,8 +172,16 @@ def run(benchmark: Path, k: int, segments_dir: Path) -> None:
     help="Path to the NLRB benchmark JSONL file.",
 )
 @click.option("--k", default=10, show_default=True, type=int, help="Recall cutoff K.")
-@click.option("--no-hyde", "disable_hyde", is_flag=True, default=False, help="Disable HyDE expansion.")
-@click.option("--no-step-back", "disable_step_back", is_flag=True, default=False, help="Disable step-back expansion.")
+@click.option(
+    "--no-hyde", "disable_hyde", is_flag=True, default=False, help="Disable HyDE expansion."
+)
+@click.option(
+    "--no-step-back",
+    "disable_step_back",
+    is_flag=True,
+    default=False,
+    help="Disable step-back expansion.",
+)
 def run_engine(benchmark: Path, k: int, disable_hyde: bool, disable_step_back: bool) -> None:
     """Evaluate the live retrieval engine against the benchmark."""
     import asyncio

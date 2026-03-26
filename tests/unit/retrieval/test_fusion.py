@@ -5,12 +5,17 @@ from __future__ import annotations
 import pytest
 
 from retrieval.fusion import RRFFusion, _authority_boost, _recency_boost
-from retrieval.models import RetrievalConfig
 
 
-def _row(segment_id: str, case_id: str, seg_type: str = "RATIO",
-         court: str = "NGSC", year: int = 2020,
-         opinion: str = "LEAD", weight: float = 1.0) -> dict:
+def _row(
+    segment_id: str,
+    case_id: str,
+    seg_type: str = "RATIO",
+    court: str = "NGSC",
+    year: int = 2020,
+    opinion: str = "LEAD",
+    weight: float = 1.0,
+) -> dict:
     return {
         "segment_id": segment_id,
         "case_id": case_id,
@@ -77,7 +82,8 @@ class TestRRFFusion:
         uncited = _row("s-uncited", "case-uncited")
         authority_scores = {"case-cited": 500, "case-uncited": 0}
         result = self.fusion.fuse(
-            [[cited, uncited]], [[cited, uncited]],
+            [[cited, uncited]],
+            [[cited, uncited]],
             authority_scores=authority_scores,
         )
         cited_result = next(c for c in result if c.case_id == "case-cited")

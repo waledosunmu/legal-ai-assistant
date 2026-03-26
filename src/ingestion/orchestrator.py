@@ -43,9 +43,7 @@ class IngestionOrchestrator:
 
     def __init__(self, data_dir: Path = Path("data")) -> None:
         self.data_dir = data_dir
-        self.crawler = NigeriaLIICrawler(
-            raw_cache_dir=data_dir / "raw" / "nigerialii"
-        )
+        self.crawler = NigeriaLIICrawler(raw_cache_dir=data_dir / "raw" / "nigerialii")
         self.manifest_path = data_dir / "manifest.json"
         self.manifest = self._load_manifest()
 
@@ -57,9 +55,9 @@ class IngestionOrchestrator:
             return json.loads(self.manifest_path.read_text(encoding="utf-8"))
         return {
             "discovered": {},  # court_code → [{ case_name, case_url, … }]
-            "fetched": [],     # [case_url, …] — successfully fetched
-            "failed": [],      # [case_url, …] — errored
-            "stats": {},       # court_code → int
+            "fetched": [],  # [case_url, …] — successfully fetched
+            "failed": [],  # [case_url, …] — errored
+            "stats": {},  # court_code → int
         }
 
     def _save_manifest(self) -> None:
@@ -140,14 +138,11 @@ class IngestionOrchestrator:
                     )
                     continue
 
-                entries_data: list[dict] = self.manifest["discovered"][
-                    court.value
-                ]
+                entries_data: list[dict] = self.manifest["discovered"][court.value]
                 pending = [
                     e
                     for e in entries_data
-                    if e["case_url"] not in already_fetched
-                    and e["case_url"] not in failed
+                    if e["case_url"] not in already_fetched and e["case_url"] not in failed
                 ]
 
                 if limit is not None:
@@ -202,10 +197,7 @@ class IngestionOrchestrator:
 
     async def _save_raw_judgment(self, judgment: RawJudgment) -> None:
         """Append a raw judgment as a JSON line to the per-court JSONL file."""
-        output_path = (
-            self.data_dir / "raw" / "judgments"
-            / f"{judgment.court.value}.jsonl"
-        )
+        output_path = self.data_dir / "raw" / "judgments" / f"{judgment.court.value}.jsonl"
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         record = {
@@ -231,8 +223,7 @@ class IngestionOrchestrator:
         """Return a summary of the current manifest state."""
         return {
             "discovered": {
-                court: len(entries)
-                for court, entries in self.manifest["discovered"].items()
+                court: len(entries) for court, entries in self.manifest["discovered"].items()
             },
             "fetched": len(self.manifest["fetched"]),
             "failed": len(self.manifest["failed"]),

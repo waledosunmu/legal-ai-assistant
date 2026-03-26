@@ -1,7 +1,7 @@
 """asyncpg connection pool — used by ingestion pipeline and API layer."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import asyncpg
 import structlog

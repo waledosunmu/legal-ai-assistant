@@ -304,9 +304,7 @@ async def test_fetch_cached_writes_to_disk(tmp_path: Path) -> None:
     mock_response.raise_for_status = MagicMock()
     crawler._client.get = AsyncMock(return_value=mock_response)
 
-    result = await crawler._fetch_cached(
-        "https://nigerialii.org/test", "test/page.html"
-    )
+    result = await crawler._fetch_cached("https://nigerialii.org/test", "test/page.html")
     assert result == "<html>hello</html>"
 
     # Cache file should now exist
@@ -316,9 +314,7 @@ async def test_fetch_cached_writes_to_disk(tmp_path: Path) -> None:
 
     # Second call must NOT make another HTTP request
     crawler._client.get.reset_mock()
-    result2 = await crawler._fetch_cached(
-        "https://nigerialii.org/test", "test/page.html"
-    )
+    result2 = await crawler._fetch_cached("https://nigerialii.org/test", "test/page.html")
     assert result2 == "<html>hello</html>"
     crawler._client.get.assert_not_called()
 
@@ -437,9 +433,7 @@ async def test_orchestrator_discovery_populates_manifest(
         new=AsyncMock(side_effect=fake_crawl_court),
     ):
         # Need context manager to be a no-op
-        orchestrator.crawler.__aenter__ = AsyncMock(
-            return_value=orchestrator.crawler
-        )
+        orchestrator.crawler.__aenter__ = AsyncMock(return_value=orchestrator.crawler)
         orchestrator.crawler.__aexit__ = AsyncMock(return_value=None)
 
         await orchestrator.run_discovery(courts=[Court.SUPREME_COURT])
@@ -461,9 +455,7 @@ async def test_orchestrator_discovery_skips_already_discovered(
 
     crawl_court_mock = AsyncMock()
     with patch.object(orchestrator.crawler, "crawl_court", crawl_court_mock):
-        orchestrator.crawler.__aenter__ = AsyncMock(
-            return_value=orchestrator.crawler
-        )
+        orchestrator.crawler.__aenter__ = AsyncMock(return_value=orchestrator.crawler)
         orchestrator.crawler.__aexit__ = AsyncMock(return_value=None)
 
         await orchestrator.run_discovery(courts=[Court.SUPREME_COURT])
@@ -502,9 +494,7 @@ async def test_orchestrator_fetch_saves_jsonl(tmp_path: Path) -> None:
         "crawl_judgment",
         new=AsyncMock(return_value=dummy_judgment),
     ):
-        orchestrator.crawler.__aenter__ = AsyncMock(
-            return_value=orchestrator.crawler
-        )
+        orchestrator.crawler.__aenter__ = AsyncMock(return_value=orchestrator.crawler)
         orchestrator.crawler.__aexit__ = AsyncMock(return_value=None)
 
         await orchestrator.run_fetch(courts=[Court.SUPREME_COURT])
@@ -538,12 +528,8 @@ async def test_orchestrator_fetch_skips_already_fetched(tmp_path: Path) -> None:
     orchestrator.manifest["fetched"] = [entry_url]  # Already fetched
 
     crawl_judgment_mock = AsyncMock()
-    with patch.object(
-        orchestrator.crawler, "crawl_judgment", crawl_judgment_mock
-    ):
-        orchestrator.crawler.__aenter__ = AsyncMock(
-            return_value=orchestrator.crawler
-        )
+    with patch.object(orchestrator.crawler, "crawl_judgment", crawl_judgment_mock):
+        orchestrator.crawler.__aenter__ = AsyncMock(return_value=orchestrator.crawler)
         orchestrator.crawler.__aexit__ = AsyncMock(return_value=None)
 
         await orchestrator.run_fetch(courts=[Court.SUPREME_COURT])
@@ -579,9 +565,7 @@ async def test_orchestrator_fetch_respects_limit(tmp_path: Path) -> None:
         "crawl_judgment",
         new=AsyncMock(return_value=dummy_judgment),
     ):
-        orchestrator.crawler.__aenter__ = AsyncMock(
-            return_value=orchestrator.crawler
-        )
+        orchestrator.crawler.__aenter__ = AsyncMock(return_value=orchestrator.crawler)
         orchestrator.crawler.__aexit__ = AsyncMock(return_value=None)
 
         await orchestrator.run_fetch(courts=[Court.SUPREME_COURT], limit=2)

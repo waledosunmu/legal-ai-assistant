@@ -9,20 +9,19 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from enum import Enum
-
+from enum import StrEnum
 
 # ── Verification ───────────────────────────────────────────────────────────────
 
 
-class VerificationStatus(str, Enum):
+class VerificationStatus(StrEnum):
     """Citation verification level (§5.4 of the PRD)."""
 
-    FULLY_VERIFIED = "fully_verified"       # ✅ Case exists, active, principle confirmed
-    CASE_VERIFIED = "case_verified"         # 🟡 Case exists, active, principle unconfirmed
-    CASE_EXISTS = "case_exists"             # ⚠️ Case in corpus, citation format unconfirmed
-    NOT_IN_CORPUS = "not_in_corpus"         # ❌ Case not found
-    OVERRULED = "overruled"                 # 🔄 Case exists but overruled
+    FULLY_VERIFIED = "fully_verified"  # ✅ Case exists, active, principle confirmed
+    CASE_VERIFIED = "case_verified"  # 🟡 Case exists, active, principle unconfirmed
+    CASE_EXISTS = "case_exists"  # ⚠️ Case in corpus, citation format unconfirmed
+    NOT_IN_CORPUS = "not_in_corpus"  # ❌ Case not found
+    OVERRULED = "overruled"  # 🔄 Case exists but overruled
 
 
 # ── Document structures ───────────────────────────────────────────────────────
@@ -108,9 +107,9 @@ class GenerationRequest:
     applicant_description: str
     respondent_name: str
     respondent_description: str
-    position: str                            # "applicant" or "respondent"
+    position: str  # "applicant" or "respondent"
     relief_sought: str
-    selected_cases: list[dict]               # cases from retrieval engine
+    selected_cases: list[dict]  # cases from retrieval engine
     statutes: list[dict] = field(default_factory=list)
     counsel_name: str = ""
     counsel_firm: str = ""
@@ -138,22 +137,23 @@ class GenerationResult:
     @property
     def unverified_citations(self) -> list[dict]:
         return [
-            c for c in self.citation_report
+            c
+            for c in self.citation_report
             if c.get("status") == VerificationStatus.NOT_IN_CORPUS.value
         ]
 
     @property
     def overruled_citations(self) -> list[dict]:
         return [
-            c for c in self.citation_report
-            if c.get("status") == VerificationStatus.OVERRULED.value
+            c for c in self.citation_report if c.get("status") == VerificationStatus.OVERRULED.value
         ]
 
     @property
     def misgrounded_citations(self) -> list[dict]:
         """Citations where the case exists but the principle may not match."""
         return [
-            c for c in self.citation_report
+            c
+            for c in self.citation_report
             if c.get("status") == VerificationStatus.CASE_VERIFIED.value
             and c.get("checks", {}).get("attribution", {}).get("verified") is False
         ]
@@ -162,8 +162,7 @@ class GenerationResult:
     def weak_arguments(self) -> list[dict]:
         """Arguments with overall strength score below 5."""
         return [
-            a for a in self.strength_report
-            if a.get("overall_score") and a["overall_score"] < 5.0
+            a for a in self.strength_report if a.get("overall_score") and a["overall_score"] < 5.0
         ]
 
     @property
@@ -171,11 +170,13 @@ class GenerationResult:
         """Summary of citation verification for the UI."""
         total = len(self.citation_report)
         fully_verified = sum(
-            1 for c in self.citation_report
+            1
+            for c in self.citation_report
             if c.get("status") == VerificationStatus.FULLY_VERIFIED.value
         )
         case_verified = sum(
-            1 for c in self.citation_report
+            1
+            for c in self.citation_report
             if c.get("status") == VerificationStatus.CASE_VERIFIED.value
         )
         return {
@@ -200,9 +201,11 @@ class AuditLog:
         self.entries: list[dict] = []
 
     def record(self, event_type: str, data: dict) -> None:
-        self.entries.append({
-            "event_type": event_type,
-            "timestamp": time.time(),
-            "draft_id": self.draft_id,
-            "data": data,
-        })
+        self.entries.append(
+            {
+                "event_type": event_type,
+                "timestamp": time.time(),
+                "draft_id": self.draft_id,
+                "data": data,
+            }
+        )

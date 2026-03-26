@@ -6,10 +6,8 @@ import pytest
 
 from ingestion.citations.extractor import (
     CitationTreatmentClassifier,
-    ExtractedCitation,
     NigerianCitationExtractor,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -39,10 +37,7 @@ class TestNWLR:
         assert citations[0].report_series == "NWLR"
 
     def test_nwlr_extracts_case_name(self) -> None:
-        text = (
-            "The decision in Adeleke v. Obi "
-            "(2020) 15 NWLR (Pt. 1748) 1 was followed."
-        )
+        text = "The decision in Adeleke v. Obi " "(2020) 15 NWLR (Pt. 1748) 1 was followed."
         citations = EXTRACTOR.extract_all(text)
         assert citations[0].case_name is not None
         assert "Adeleke" in citations[0].case_name
@@ -152,10 +147,7 @@ class TestNeutralCitation:
 
 
 def test_extract_all_multiple_citations() -> None:
-    text = (
-        "The court followed (2020) 15 NWLR (Pt. 1748) 1 and also "
-        "referred to (1986) 2 SC 87."
-    )
+    text = "The court followed (2020) 15 NWLR (Pt. 1748) 1 and also " "referred to (1986) 2 SC 87."
     citations = EXTRACTOR.extract_all(text)
     assert len(citations) == 2
 
@@ -269,9 +261,9 @@ class TestCitationTreatmentClassifier:
     )
     def test_classify(self, context: str, expected: str) -> None:
         result = CLASSIFIER.classify(context)
-        assert result == expected, (
-            f"Expected '{expected}' for context: {repr(context)!r}, got '{result}'"
-        )
+        assert (
+            result == expected
+        ), f"Expected '{expected}' for context: {repr(context)!r}, got '{result}'"
 
     def test_overruled_takes_priority_over_followed(self) -> None:
         # A sentence containing both "followed" and "overruled" signals

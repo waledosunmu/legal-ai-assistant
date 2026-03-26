@@ -78,7 +78,9 @@ def cli(ctx: click.Context, data_dir: str) -> None:
     help="Seconds to sleep between batches (use ~21 for free-tier rate limits).",
 )
 @click.pass_context
-def run(ctx: click.Context, court_codes: tuple[str, ...], batch_size: int, sleep_between_batches: float) -> None:
+def run(
+    ctx: click.Context, court_codes: tuple[str, ...], batch_size: int, sleep_between_batches: float
+) -> None:
     """Chunk and embed all unembedded case segments."""
     data_dir: Path = ctx.obj["data_dir"]
     processed_dir = data_dir / "processed" / "judgments"
@@ -135,16 +137,16 @@ def run(ctx: click.Context, court_codes: tuple[str, ...], batch_size: int, sleep
             with output_path.open("w", encoding="utf-8") as wf:
                 for chunk in all_chunks:
                     record = {
-                        "chunk_id":     chunk.chunk_id,
-                        "case_id":      chunk.case_id,
+                        "chunk_id": chunk.chunk_id,
+                        "case_id": chunk.case_id,
                         "segment_type": chunk.segment_type,
-                        "content":      chunk.content,
-                        "embedding":    existing_embeddings.get(chunk.chunk_id),
-                        "court":        chunk.court,
-                        "year":         chunk.year,
-                        "area_of_law":  chunk.area_of_law,
-                        "case_name":    chunk.case_name,
-                        "citation":     chunk.citation,
+                        "content": chunk.content,
+                        "embedding": existing_embeddings.get(chunk.chunk_id),
+                        "court": chunk.court,
+                        "year": chunk.year,
+                        "area_of_law": chunk.area_of_law,
+                        "case_name": chunk.case_name,
+                        "citation": chunk.citation,
                     }
                     wf.write(json.dumps(record) + "\n")
 

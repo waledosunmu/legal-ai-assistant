@@ -17,7 +17,6 @@ from generation.models import (
     WrittenAddress,
 )
 
-
 # ── Fallback issues per motion type ────────────────────────────────────────────
 
 FALLBACK_ISSUES: dict[str, list[str]] = {
@@ -51,12 +50,8 @@ FALLBACK_ISSUES: dict[str, list[str]] = {
 
 def render_motion_paper(mp: MotionPaper) -> str:
     """Render a MotionPaper dataclass into formatted text."""
-    prayers_text = "\n".join(
-        f"    {i}. {prayer}" for i, prayer in enumerate(mp.prayers, 1)
-    )
-    grounds_text = "\n".join(
-        f"    {i}. {ground}" for i, ground in enumerate(mp.grounds, 1)
-    )
+    prayers_text = "\n".join(f"    {i}. {prayer}" for i, prayer in enumerate(mp.prayers, 1))
+    grounds_text = "\n".join(f"    {i}. {ground}" for i, ground in enumerate(mp.grounds, 1))
     pursuant_text = "; ".join(mp.brought_pursuant_to)
 
     return f"""{mp.court_name}
@@ -114,8 +109,7 @@ def render_affidavit(aff: SupportingAffidavit) -> str:
     exhibits_text = ""
     if aff.exhibits:
         exhibit_lines = "\n".join(
-            f"    {e.get('label', '')}: {e.get('description', '')}"
-            for e in aff.exhibits
+            f"    {e.get('label', '')}: {e.get('description', '')}" for e in aff.exhibits
         )
         exhibits_text = f"\n\nEXHIBITS:\n{exhibit_lines}"
 
@@ -149,13 +143,10 @@ DEPONENT
 def render_written_address(wa: WrittenAddress) -> str:
     """Render a WrittenAddress dataclass into formatted text."""
     issues_text = "\n".join(
-        f"    {i}. {issue}"
-        for i, issue in enumerate(wa.issues_for_determination, 1)
+        f"    {i}. {issue}" for i, issue in enumerate(wa.issues_for_determination, 1)
     )
 
-    arguments_text = "\n\n".join(
-        _render_argument_section(arg) for arg in wa.arguments
-    )
+    arguments_text = "\n\n".join(_render_argument_section(arg) for arg in wa.arguments)
 
     return f"""{wa.court_header}
 

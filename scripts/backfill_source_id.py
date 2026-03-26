@@ -23,9 +23,7 @@ import structlog
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from config import settings
 
-structlog.configure(
-    processors=[structlog.stdlib.add_log_level, structlog.dev.ConsoleRenderer()]
-)
+structlog.configure(processors=[structlog.stdlib.add_log_level, structlog.dev.ConsoleRenderer()])
 logger = structlog.get_logger(__name__)
 
 _SEGMENTS_DIR = Path("data/processed/segments")
@@ -39,6 +37,7 @@ def _slug_from_url(source_url: str) -> str | None:
     """
     try:
         from urllib.parse import urlparse
+
         path = urlparse(source_url).path  # /akn/ng/judgment/ngca/1970/6/eng@1970-12-21
         parts = [p for p in path.strip("/").split("/") if not p.startswith("eng@")]
         return "_".join(parts)

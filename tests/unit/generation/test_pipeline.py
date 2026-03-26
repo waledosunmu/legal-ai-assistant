@@ -7,14 +7,13 @@ citation extraction, and document assembly.
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from generation.models import ArgumentSection, GenerationRequest, VerificationStatus
+from generation.models import ArgumentSection, GenerationRequest
 from generation.pipeline import MotionGenerationPipeline, _extract_principle_near_case
 from generation.verification import CitationVerifier
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -60,7 +59,11 @@ def _gen_request(**kw) -> GenerationRequest:
             },
         ],
         statutes=[
-            {"section": "Section 251(1)(d)", "act": "CFRN 1999", "content": "Federal High Court jurisdiction"},
+            {
+                "section": "Section 251(1)(d)",
+                "act": "CFRN 1999",
+                "content": "Federal High Court jurisdiction",
+            },
         ],
         counsel_name="A. Barrister Esq.",
         counsel_firm="Law Chambers",
@@ -121,13 +124,16 @@ class TestReadinessAssessment:
 class TestIssueFormulation:
     @pytest.mark.asyncio
     async def test_parses_json_issues(self):
-        issues_json = json.dumps([
-            "Whether the court has jurisdiction?",
-            "Whether the cause of action is disclosed?",
-        ])
+        issues_json = json.dumps(
+            [
+                "Whether the court has jurisdiction?",
+                "Whether the cause of action is disclosed?",
+            ]
+        )
         client = _mock_client(issues_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         issues = await pipeline._formulate_issues(_gen_request())
         assert len(issues) == 2
@@ -138,7 +144,8 @@ class TestIssueFormulation:
         issues_json = '```json\n["Issue 1?", "Issue 2?"]\n```'
         client = _mock_client(issues_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         issues = await pipeline._formulate_issues(_gen_request())
         assert len(issues) == 2
@@ -148,7 +155,8 @@ class TestIssueFormulation:
         issues_json = json.dumps(["I1?", "I2?", "I3?", "I4?", "I5?"])
         client = _mock_client(issues_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         issues = await pipeline._formulate_issues(_gen_request())
         assert len(issues) == 4
@@ -157,7 +165,8 @@ class TestIssueFormulation:
     async def test_fallback_on_invalid_json(self):
         client = _mock_client("This is not JSON at all")
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         issues = await pipeline._formulate_issues(_gen_request())
         # Should return fallback issues for motion_to_dismiss
@@ -178,7 +187,8 @@ class TestArgumentGeneration:
         )
         client = _mock_client(arg_text)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = await pipeline._generate_argument(
             issue_number=1,
@@ -197,7 +207,8 @@ class TestArgumentGeneration:
         )
         client = _mock_client(arg_text)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = await pipeline._generate_argument(
             issue_number=1,
@@ -212,7 +223,8 @@ class TestArgumentGeneration:
         arg_text = "By virtue of Section 251(1)(d) of the CFRN 1999, this court has jurisdiction."
         client = _mock_client(arg_text)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = await pipeline._generate_argument(
             issue_number=1,
@@ -229,7 +241,8 @@ class TestSupportingSections:
     @pytest.mark.asyncio
     async def test_parse_json_list_valid(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         result = pipeline._parse_json_list('["Prayer 1", "Prayer 2"]')
         assert result == ["Prayer 1", "Prayer 2"]
@@ -237,7 +250,8 @@ class TestSupportingSections:
     @pytest.mark.asyncio
     async def test_parse_json_list_markdown_wrapped(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         result = pipeline._parse_json_list('```json\n["a", "b"]\n```')
         assert result == ["a", "b"]
@@ -245,7 +259,8 @@ class TestSupportingSections:
     @pytest.mark.asyncio
     async def test_parse_json_list_fallback(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         result = pipeline._parse_json_list("1. First item\n2. Second item")
         assert len(result) == 2
@@ -253,7 +268,8 @@ class TestSupportingSections:
     @pytest.mark.asyncio
     async def test_parse_json_list_empty_fallback(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         result = pipeline._parse_json_list("")
         assert len(result) >= 1  # fallback produces at least one item
@@ -263,7 +279,8 @@ class TestSupportingSections:
         prayers_json = json.dumps(["AN ORDER dismissing the suit", "Costs of this application"])
         client = _mock_client(prayers_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         prayers = await pipeline._generate_prayers(_gen_request(), ["Issue 1?"])
         assert len(prayers) == 2
@@ -273,7 +290,8 @@ class TestSupportingSections:
         grounds_json = json.dumps(["Ground 1", "Ground 2", "Ground 3"])
         client = _mock_client(grounds_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         grounds = await pipeline._generate_grounds(_gen_request(), ["Issue?"])
         assert len(grounds) == 3
@@ -283,7 +301,8 @@ class TestSupportingSections:
         affi_json = json.dumps(["I am the Director", "The contract was signed"])
         client = _mock_client(affi_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         paragraphs = await pipeline._generate_affidavit(_gen_request())
         assert len(paragraphs) == 2
@@ -293,7 +312,8 @@ class TestSupportingSections:
         intro = "This Written Address is filed in support of the Applicant's Motion."
         client = _mock_client(intro)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         result = await pipeline._generate_introduction(_gen_request(), ["Issue?"])
         assert "Written Address" in result
@@ -303,11 +323,10 @@ class TestSupportingSections:
         conclusion = "We urge this Honourable Court to grant the application."
         client = _mock_client(conclusion)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
-        result = await pipeline._generate_conclusion(
-            _gen_request(), ["Issue?"], []
-        )
+        result = await pipeline._generate_conclusion(_gen_request(), ["Issue?"], [])
         assert "urge" in result.lower()
 
 
@@ -317,20 +336,25 @@ class TestSupportingSections:
 class TestStrengthAssessment:
     @pytest.mark.asyncio
     async def test_parses_strength_report(self):
-        strength_json = json.dumps({
-            "legal_soundness": 8,
-            "factual_applicability": 7,
-            "authority_strength": 9,
-            "vulnerability": 6,
-            "weaknesses": [],
-            "misattribution_risk": [],
-        })
+        strength_json = json.dumps(
+            {
+                "legal_soundness": 8,
+                "factual_applicability": 7,
+                "authority_strength": 9,
+                "vulnerability": 6,
+                "weaknesses": [],
+                "misattribution_risk": [],
+            }
+        )
         client = _mock_client(strength_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = ArgumentSection(
-            issue_number=1, issue_text="Test?", argument_text="Test argument",
+            issue_number=1,
+            issue_text="Test?",
+            argument_text="Test argument",
             cases_cited=[{"name": "A v. B", "citation": "(2020) 1 NWLR 1"}],
         )
         report = await pipeline._assess_argument_strength([arg], _gen_request())
@@ -342,7 +366,8 @@ class TestStrengthAssessment:
     async def test_handles_invalid_json(self):
         client = _mock_client("Not valid JSON")
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = ArgumentSection(issue_number=1, issue_text="T?", argument_text="T")
         report = await pipeline._assess_argument_strength([arg], _gen_request())
@@ -355,15 +380,20 @@ class TestStrengthAssessment:
 class TestCounterArguments:
     @pytest.mark.asyncio
     async def test_parses_counter_arguments(self):
-        ca_json = json.dumps([{
-            "issue_number": 1,
-            "counter_argument": "The contract was validly formed",
-            "potential_authority": "A v. B (2020)",
-            "suggested_rebuttal": "However, the statute bars this",
-        }])
+        ca_json = json.dumps(
+            [
+                {
+                    "issue_number": 1,
+                    "counter_argument": "The contract was validly formed",
+                    "potential_authority": "A v. B (2020)",
+                    "suggested_rebuttal": "However, the statute bars this",
+                }
+            ]
+        )
         client = _mock_client(ca_json)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = ArgumentSection(issue_number=1, issue_text="T?", argument_text="T")
         result = await pipeline._generate_counter_arguments([arg], _gen_request())
@@ -374,7 +404,8 @@ class TestCounterArguments:
     async def test_returns_empty_on_invalid_json(self):
         client = _mock_client("Invalid")
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=CitationVerifier(),
+            anthropic_client=client,
+            verifier=CitationVerifier(),
         )
         arg = ArgumentSection(issue_number=1, issue_text="T?", argument_text="T")
         result = await pipeline._generate_counter_arguments([arg], _gen_request())
@@ -387,7 +418,8 @@ class TestCounterArguments:
 class TestDocumentAssembly:
     def test_assemble_motion_paper(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         mp = pipeline._assemble_motion_paper(
             _gen_request(),
@@ -401,17 +433,20 @@ class TestDocumentAssembly:
 
     def test_assemble_affidavit(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         aff = pipeline._assemble_affidavit(
-            _gen_request(), paragraphs=["Facts", "More facts"],
+            _gen_request(),
+            paragraphs=["Facts", "More facts"],
         )
         assert aff.deponent_name == "ABC Ltd"  # falls back to applicant_name
         assert len(aff.paragraphs) == 2
 
     def test_assemble_written_address(self):
         pipeline = MotionGenerationPipeline(
-            anthropic_client=AsyncMock(), verifier=CitationVerifier(),
+            anthropic_client=AsyncMock(),
+            verifier=CitationVerifier(),
         )
         args = [ArgumentSection(issue_number=1, issue_text="Q?", argument_text="A")]
         wa = pipeline._assemble_written_address(
@@ -435,7 +470,14 @@ class TestHelpers:
         assert result == "No cases available."
 
     def test_prepare_case_context_with_cases(self):
-        cases = [{"case_name": "A v. B", "citation": "(2020) 1 NWLR", "court": "NGSC", "matched_segment": {"content": "holding text"}}]
+        cases = [
+            {
+                "case_name": "A v. B",
+                "citation": "(2020) 1 NWLR",
+                "court": "NGSC",
+                "matched_segment": {"content": "holding text"},
+            }
+        ]
         result = MotionGenerationPipeline._prepare_case_context(cases)
         assert "A v. B" in result
         assert "NGSC" in result
@@ -473,7 +515,9 @@ class TestHelpers:
     def test_update_citation_status(self):
         args = [
             ArgumentSection(
-                issue_number=1, issue_text="Q?", argument_text="A",
+                issue_number=1,
+                issue_text="Q?",
+                argument_text="A",
                 cases_cited=[
                     {"name": "A v. B", "citation": "(2020) 1 NWLR"},
                     {"name": "C v. D", "citation": "(2021) 2 NWLR"},
@@ -481,8 +525,18 @@ class TestHelpers:
             )
         ]
         verified = [
-            {"name": "A v. B", "citation": "(2020) 1 NWLR", "verified": True, "status": "fully_verified"},
-            {"name": "C v. D", "citation": "(2021) 2 NWLR", "verified": False, "status": "not_in_corpus"},
+            {
+                "name": "A v. B",
+                "citation": "(2020) 1 NWLR",
+                "verified": True,
+                "status": "fully_verified",
+            },
+            {
+                "name": "C v. D",
+                "citation": "(2021) 2 NWLR",
+                "verified": False,
+                "status": "not_in_corpus",
+            },
         ]
         MotionGenerationPipeline._update_citation_status(args, verified)
         assert args[0].cases_cited[0]["verified"] is True
@@ -499,15 +553,44 @@ class TestFullPipeline:
         # LLM responses in call order:
         responses = [
             # 1. Issue formulation (Sonnet)
-            json.dumps(["Whether the court has jurisdiction?", "Whether cause of action is disclosed?"]),
+            json.dumps(
+                ["Whether the court has jurisdiction?", "Whether cause of action is disclosed?"]
+            ),
             # 2-3. Argument generation per issue (Sonnet, parallel — 2 issues)
             "In Madukolu v. Nkemdilim the court held that jurisdiction is fundamental to adjudication.",
             "A cause of action requires facts disclosing a right recognised by law.",
             # 4-5. Strength assessment (Haiku, 2 issues)
-            json.dumps({"legal_soundness": 8, "factual_applicability": 7, "authority_strength": 9, "vulnerability": 6, "weaknesses": [], "misattribution_risk": []}),
-            json.dumps({"legal_soundness": 7, "factual_applicability": 6, "authority_strength": 7, "vulnerability": 5, "weaknesses": [], "misattribution_risk": []}),
+            json.dumps(
+                {
+                    "legal_soundness": 8,
+                    "factual_applicability": 7,
+                    "authority_strength": 9,
+                    "vulnerability": 6,
+                    "weaknesses": [],
+                    "misattribution_risk": [],
+                }
+            ),
+            json.dumps(
+                {
+                    "legal_soundness": 7,
+                    "factual_applicability": 6,
+                    "authority_strength": 7,
+                    "vulnerability": 5,
+                    "weaknesses": [],
+                    "misattribution_risk": [],
+                }
+            ),
             # 6. Counter-arguments (Haiku)
-            json.dumps([{"issue_number": 1, "counter_argument": "CA1", "potential_authority": "", "suggested_rebuttal": "R1"}]),
+            json.dumps(
+                [
+                    {
+                        "issue_number": 1,
+                        "counter_argument": "CA1",
+                        "potential_authority": "",
+                        "suggested_rebuttal": "R1",
+                    }
+                ]
+            ),
             # 7. Prayers (Haiku)
             json.dumps(["AN ORDER dismissing the suit"]),
             # 8. Grounds (Haiku)
@@ -526,7 +609,8 @@ class TestFullPipeline:
 
         verifier = CitationVerifier(db_pool=None)
         pipeline = MotionGenerationPipeline(
-            anthropic_client=client, verifier=verifier,
+            anthropic_client=client,
+            verifier=verifier,
         )
 
         result = await pipeline.generate(_gen_request())

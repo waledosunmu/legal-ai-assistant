@@ -20,7 +20,6 @@ from retrieval.models import (
     SearchResult,
 )
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
@@ -104,16 +103,32 @@ def _make_engine(
     expander.expand = AsyncMock(return_value=expanded)
 
     dense = MagicMock()
-    dense.search = AsyncMock(return_value=[
-        {"case_id": "c1", "segment_id": "s1", "segment_type": "RATIO",
-         "content": "text", "court": "NGSC", "year": 2020}
-    ])
+    dense.search = AsyncMock(
+        return_value=[
+            {
+                "case_id": "c1",
+                "segment_id": "s1",
+                "segment_type": "RATIO",
+                "content": "text",
+                "court": "NGSC",
+                "year": 2020,
+            }
+        ]
+    )
 
     sparse = MagicMock()
-    sparse.search = AsyncMock(return_value=[
-        {"case_id": "c1", "segment_id": "s1", "segment_type": "RATIO",
-         "content": "text", "court": "NGSC", "year": 2020}
-    ])
+    sparse.search = AsyncMock(
+        return_value=[
+            {
+                "case_id": "c1",
+                "segment_id": "s1",
+                "segment_type": "RATIO",
+                "content": "text",
+                "court": "NGSC",
+                "year": 2020,
+            }
+        ]
+    )
 
     exact = MagicMock()
     exact.search = AsyncMock(return_value=[])
@@ -129,12 +144,16 @@ def _make_engine(
 
     # Mock asyncpg connection
     conn = MagicMock()
-    authority_rows = authority_rows or [
-        {"case_id": "c1", "times_cited": 42, "authority_score": 42}
-    ]
+    authority_rows = authority_rows or [{"case_id": "c1", "times_cited": 42, "authority_score": 42}]
     metadata_rows = metadata_rows or [
-        {"case_id": "c1", "case_name": "Test v. State", "citation": "(2020) 1 NWLR 1",
-         "court": "NGSC", "year": 2020, "status": "good_law"}
+        {
+            "case_id": "c1",
+            "case_name": "Test v. State",
+            "citation": "(2020) 1 NWLR 1",
+            "court": "NGSC",
+            "year": 2020,
+            "status": "good_law",
+        }
     ]
     conn.fetch = AsyncMock(side_effect=[authority_rows, metadata_rows])
 
@@ -158,6 +177,7 @@ def _mock_get_connection(conn: MagicMock):
     Each parallel search task calls get_connection() independently, so each
     call must produce a new (non-exhausted) context manager instance.
     """
+
     @asynccontextmanager
     async def _ctx():
         yield conn
@@ -190,9 +210,19 @@ class TestRetrievalEngineSearch:
 
         assert len(result["cases"]) == 1
         case = result["cases"][0]
-        for key in ("case_id", "case_name", "citation", "court", "year",
-                    "relevance_score", "relevance_explanation", "authority_score",
-                    "times_cited", "matched_segment", "verification_status"):
+        for key in (
+            "case_id",
+            "case_name",
+            "citation",
+            "court",
+            "year",
+            "relevance_score",
+            "relevance_explanation",
+            "authority_score",
+            "times_cited",
+            "matched_segment",
+            "verification_status",
+        ):
             assert key in case, f"missing key: {key}"
 
     @pytest.mark.asyncio
@@ -252,11 +282,22 @@ class TestRetrievalEngineSearch:
     async def test_max_results_respected(self) -> None:
         ranked = [_search_result(f"c{i}") for i in range(10)]
         engine, conn = _make_engine(ranked=ranked)
-        conn.fetch = AsyncMock(side_effect=[
-            [{"case_id": f"c{i}", "times_cited": 1, "authority_score": 1} for i in range(10)],
-            [{"case_id": f"c{i}", "case_name": f"Case {i}", "citation": None,
-              "court": "NGSC", "year": 2020, "status": "good_law"} for i in range(10)],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [{"case_id": f"c{i}", "times_cited": 1, "authority_score": 1} for i in range(10)],
+                [
+                    {
+                        "case_id": f"c{i}",
+                        "case_name": f"Case {i}",
+                        "citation": None,
+                        "court": "NGSC",
+                        "year": 2020,
+                        "status": "good_law",
+                    }
+                    for i in range(10)
+                ],
+            ]
+        )
         with patch("db.get_connection", _mock_get_connection(conn)):
             result = await engine.search("test query", max_results=3)
 
@@ -330,11 +371,21 @@ class TestEmptyAndFallbackPaths:
         """If authority score fetch fails, pipeline continues with empty scores."""
         engine, conn = _make_engine()
         # First fetch (authority) raises, second fetch (metadata) succeeds
-        conn.fetch = AsyncMock(side_effect=[
-            Exception("DB down"),
-            [{"case_id": "c1", "case_name": "Test", "citation": None,
-              "court": "NGSC", "year": 2020, "status": "good_law"}],
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                Exception("DB down"),
+                [
+                    {
+                        "case_id": "c1",
+                        "case_name": "Test",
+                        "citation": None,
+                        "court": "NGSC",
+                        "year": 2020,
+                        "status": "good_law",
+                    }
+                ],
+            ]
+        )
         with patch("db.get_connection", _mock_get_connection(conn)):
             result = await engine.search("test query")
 
@@ -344,10 +395,12 @@ class TestEmptyAndFallbackPaths:
     @pytest.mark.asyncio
     async def test_case_metadata_failure_graceful(self) -> None:
         engine, conn = _make_engine()
-        conn.fetch = AsyncMock(side_effect=[
-            [{"case_id": "c1", "times_cited": 5, "authority_score": 5}],
-            Exception("metadata fail"),
-        ])
+        conn.fetch = AsyncMock(
+            side_effect=[
+                [{"case_id": "c1", "times_cited": 5, "authority_score": 5}],
+                Exception("metadata fail"),
+            ]
+        )
         with patch("db.get_connection", _mock_get_connection(conn)):
             result = await engine.search("test query")
 
@@ -376,9 +429,7 @@ class TestEmptyAndFallbackPaths:
 
     @pytest.mark.asyncio
     async def test_case_reference_triggers_exact_search(self) -> None:
-        engine, conn = _make_engine(
-            parsed=_parsed(case_refs=["Bakare v. State (2000) 3 NWLR 1"])
-        )
+        engine, conn = _make_engine(parsed=_parsed(case_refs=["Bakare v. State (2000) 3 NWLR 1"]))
         with patch("db.get_connection", _mock_get_connection(conn)):
             await engine.search("test query")
 
@@ -387,15 +438,17 @@ class TestEmptyAndFallbackPaths:
     @pytest.mark.asyncio
     async def test_parsed_query_cache_hit_skips_parser(self) -> None:
         cache = MagicMock()
-        cache.get_parsed = AsyncMock(return_value={
-            "original": "test query",
-            "motion_type": "motion_to_dismiss",
-            "detected_concepts": ["jurisdiction"],
-            "case_references": [],
-            "area_of_law": None,
-            "confidence": 0.7,
-            "step_back_query": None,
-        })
+        cache.get_parsed = AsyncMock(
+            return_value={
+                "original": "test query",
+                "motion_type": "motion_to_dismiss",
+                "detected_concepts": ["jurisdiction"],
+                "case_references": [],
+                "area_of_law": None,
+                "confidence": 0.7,
+                "step_back_query": None,
+            }
+        )
         cache.set_parsed = AsyncMock()
         cache.get_candidates = AsyncMock(return_value=None)
         cache.set_candidates = AsyncMock()
@@ -413,19 +466,23 @@ class TestEmptyAndFallbackPaths:
         cache = MagicMock()
         cache.get_parsed = AsyncMock(return_value=None)
         cache.set_parsed = AsyncMock()
-        cache.get_candidates = AsyncMock(return_value=[{
-            "case_id": "c1",
-            "segment_id": "s1",
-            "segment_type": "RATIO",
-            "content": "leading case on jurisdiction",
-            "court": "NGSC",
-            "year": 2020,
-            "opinion_type": "LEAD",
-            "dense_rank": 1,
-            "sparse_rank": 1,
-            "fusion_score": 0.5,
-            "boosted_score": 0.6,
-        }])
+        cache.get_candidates = AsyncMock(
+            return_value=[
+                {
+                    "case_id": "c1",
+                    "segment_id": "s1",
+                    "segment_type": "RATIO",
+                    "content": "leading case on jurisdiction",
+                    "court": "NGSC",
+                    "year": 2020,
+                    "opinion_type": "LEAD",
+                    "dense_rank": 1,
+                    "sparse_rank": 1,
+                    "fusion_score": 0.5,
+                    "boosted_score": 0.6,
+                }
+            ]
+        )
         cache.set_candidates = AsyncMock()
         cache.close = AsyncMock()
 
@@ -476,6 +533,7 @@ class TestCollectCaseIds:
 class TestEmptyResponse:
     def test_structure(self) -> None:
         import time
+
         parsed = _parsed()
         result = _empty_response("test query", parsed, time.perf_counter())
         assert result["cases"] == []
@@ -488,10 +546,20 @@ class TestResultToDict:
     def test_all_fields_present(self) -> None:
         sr = _search_result()
         d = _result_to_dict(sr)
-        for key in ("case_id", "case_name", "case_name_short", "citation", "court",
-                    "year", "relevance_score", "relevance_explanation",
-                    "verification_status", "authority_score", "times_cited",
-                    "matched_segment"):
+        for key in (
+            "case_id",
+            "case_name",
+            "case_name_short",
+            "citation",
+            "court",
+            "year",
+            "relevance_score",
+            "relevance_explanation",
+            "verification_status",
+            "authority_score",
+            "times_cited",
+            "matched_segment",
+        ):
             assert key in d, f"missing: {key}"
 
     def test_relevance_score_rounded(self) -> None:

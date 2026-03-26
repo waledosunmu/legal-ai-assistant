@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from generation.models import ArgumentSection, MotionPaper, SupportingAffidavit, WrittenAddress
 from generation.templates import (
     FALLBACK_ISSUES,
@@ -11,7 +9,6 @@ from generation.templates import (
     render_motion_paper,
     render_written_address,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

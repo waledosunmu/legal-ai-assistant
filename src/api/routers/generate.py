@@ -30,6 +30,7 @@ router = APIRouter()
 def _get_pipeline():
     """Lazy import to avoid circular dep at module load time."""
     from api.app import get_pipeline
+
     return get_pipeline()
 
 
@@ -67,7 +68,7 @@ async def generate(request: GenerateRequest) -> GenerateResponse:
         result = await pipeline.generate(gen_request)
     except Exception as exc:
         logger.error("generate.handler_failed exc=%s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Generation failed. Please try again.")
+        raise HTTPException(status_code=500, detail="Generation failed. Please try again.") from exc
 
     # Render document text
     mp_text = render_motion_paper(result.motion_paper)

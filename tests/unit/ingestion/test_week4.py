@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -18,22 +17,21 @@ from ingestion.embedding.embedder import CorpusEmbedder
 from ingestion.loaders.db_loader import BulkCaseLoader
 from ingestion.segmentation.models import SegmentType
 
-
 # ── LegalTextChunker ──────────────────────────────────────────────────────────
 
 
 def _judgment(**kwargs) -> dict:
     """Build a minimal segmented judgment dict for testing."""
     defaults = {
-        "case_id":        "case_001",
-        "case_name":      "Malami v. Ohikhuare",
-        "court":          "NGSC",
-        "year":           2020,
-        "citation":       "(2020) 1 NWLR (Pt.1748) 1",
-        "area_of_law":    ["land_law"],
+        "case_id": "case_001",
+        "case_name": "Malami v. Ohikhuare",
+        "court": "NGSC",
+        "year": 2020,
+        "citation": "(2020) 1 NWLR (Pt.1748) 1",
+        "area_of_law": ["land_law"],
         "ratio_decidendi": None,
-        "holdings":       [],
-        "segments":       [],
+        "holdings": [],
+        "segments": [],
     }
     defaults.update(kwargs)
     return defaults
@@ -65,7 +63,7 @@ class TestLegalTextChunkerHoldings:
         chunker = LegalTextChunker()
         holdings = [
             {"issue": "Issue 1", "determination": "yes", "reasoning": "reason A"},
-            {"issue": "Issue 2", "determination": "no",  "reasoning": "reason B"},
+            {"issue": "Issue 2", "determination": "no", "reasoning": "reason B"},
         ]
         j = _judgment(holdings=holdings)
         chunks = chunker.chunk(j)
@@ -98,7 +96,9 @@ class TestLegalTextChunkerSegments:
 
     def test_background_segment_produces_facts_chunk(self):
         chunker = LegalTextChunker()
-        j = _judgment(segments=[self._make_seg("background", "The case arose from a land dispute.")])
+        j = _judgment(
+            segments=[self._make_seg("background", "The case arose from a land dispute.")]
+        )
         chunks = chunker.chunk(j)
         assert any(c.segment_type == "facts" for c in chunks)
 
@@ -232,7 +232,6 @@ class TestCorpusEmbedder:
     @pytest.mark.asyncio
     async def test_batching_splits_into_multiple_api_calls(self):
         # batch_size=1, 3 chunks → 3 API calls
-        embeddings = [[float(i)] for i in range(3)]
         mock_client = _make_voyage_client([])
         mock_client.embed = AsyncMock(
             side_effect=[
@@ -264,12 +263,23 @@ class TestCorpusEmbedder:
         chunks_path = tmp_path / "input.jsonl"
         # Write chunk without embedding
         with chunks_path.open("w") as f:
-            f.write(json.dumps({
-                "chunk_id": chunk.chunk_id, "case_id": chunk.case_id,
-                "segment_type": chunk.segment_type, "content": chunk.content,
-                "embedding": None, "court": None, "year": None,
-                "area_of_law": [], "case_name": None, "citation": None,
-            }) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "chunk_id": chunk.chunk_id,
+                        "case_id": chunk.case_id,
+                        "segment_type": chunk.segment_type,
+                        "content": chunk.content,
+                        "embedding": None,
+                        "court": None,
+                        "year": None,
+                        "area_of_law": [],
+                        "case_name": None,
+                        "citation": None,
+                    }
+                )
+                + "\n"
+            )
 
         mock_client = _make_voyage_client([[0.5, 0.6]])
         embedder = CorpusEmbedder(_client=mock_client)

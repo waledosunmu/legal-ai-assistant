@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-
 # ── Shared fixture data ────────────────────────────────────────────────────────
 
 
@@ -66,6 +65,7 @@ def mock_engine():
 async def client(mock_engine):
     """AsyncClient wired to the FastAPI app with engine mocked."""
     from api.app import app
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
@@ -99,9 +99,19 @@ class TestSearchEndpoint:
             json={"query": "grounds for dismissal for want of jurisdiction in Nigeria"},
         )
         case = resp.json()["cases"][0]
-        for field in ("case_id", "case_name", "citation", "court", "year",
-                      "relevance_score", "relevance_explanation", "authority_score",
-                      "times_cited", "matched_segment", "verification_status"):
+        for field in (
+            "case_id",
+            "case_name",
+            "citation",
+            "court",
+            "year",
+            "relevance_score",
+            "relevance_explanation",
+            "authority_score",
+            "times_cited",
+            "matched_segment",
+            "verification_status",
+        ):
             assert field in case
 
     @pytest.mark.asyncio
@@ -218,6 +228,7 @@ class TestErrorHandling:
         engine = _make_mock_engine(raises=RuntimeError("DB connection lost"))
         with patch("api.app._engine", engine):
             from api.app import app
+
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 resp = await ac.post(
                     "/api/v1/search",

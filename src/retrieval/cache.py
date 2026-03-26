@@ -29,13 +29,13 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # TTLs in seconds
-_TTL_L1 = 60 * 60 * 24        # 24 h  — parsed query
-_TTL_L2 = 60 * 60 * 24 * 7    # 7 d   — embedding vector
-_TTL_L3 = 60 * 60              # 1 h   — pre-rerank candidates
-_TTL_L4 = 60 * 30              # 30 m  — semantic cache
+_TTL_L1 = 60 * 60 * 24  # 24 h  — parsed query
+_TTL_L2 = 60 * 60 * 24 * 7  # 7 d   — embedding vector
+_TTL_L3 = 60 * 60  # 1 h   — pre-rerank candidates
+_TTL_L4 = 60 * 30  # 30 m  — semantic cache
 
-_SEM_THRESHOLD = 0.95           # cosine similarity threshold for L4 hit
-_SEM_MAX_ENTRIES = 500          # maximum stored semantic cache entries
+_SEM_THRESHOLD = 0.95  # cosine similarity threshold for L4 hit
+_SEM_MAX_ENTRIES = 500  # maximum stored semantic cache entries
 
 
 def _sha(text: str) -> str:
@@ -43,7 +43,7 @@ def _sha(text: str) -> str:
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
     mag_a = math.sqrt(sum(x * x for x in a))
     mag_b = math.sqrt(sum(x * x for x in b))
     if mag_a == 0 or mag_b == 0:
@@ -65,6 +65,7 @@ class LegalRetrievalCache:
     async def connect(self) -> None:
         """Open the Redis connection pool. Call once at startup."""
         import redis.asyncio as aioredis
+
         self._redis = aioredis.from_url(self._url, decode_responses=True)
 
     async def close(self) -> None:
@@ -111,9 +112,7 @@ class LegalRetrievalCache:
 
     # ── L4 — Semantic cache ───────────────────────────────────────────────────
 
-    async def get_semantic(
-        self, query_embedding: list[float]
-    ) -> list[dict] | None:
+    async def get_semantic(self, query_embedding: list[float]) -> list[dict] | None:
         """Return a cached search result if a semantically close query exists."""
         if self._redis is None:
             return None

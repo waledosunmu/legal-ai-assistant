@@ -32,8 +32,8 @@ import structlog
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from config import settings  # noqa: E402
-from ingestion.sources.nwlronline import NWLRCaseId, NWLRCrawler  # noqa: E402
 from ingestion.parsing.nwlr_parser import NWLRParser  # noqa: E402
+from ingestion.sources.nwlronline import NWLRCaseId, NWLRCrawler  # noqa: E402
 
 logger = structlog.get_logger(__name__)
 
@@ -99,13 +99,13 @@ def discover(
     email = settings.nwlr_email
     password = settings.nwlr_password
     if not email or not password:
-        raise click.ClickException(
-            "NWLR_EMAIL and NWLR_PASSWORD must be set in .env"
-        )
+        raise click.ClickException("NWLR_EMAIL and NWLR_PASSWORD must be set in .env")
 
     parts = list(range(parts_from, parts_to + 1))
-    click.echo(f"Discovering {len(parts)} parts ({parts_from}–{parts_to}), "
-               f"max_scan_page={max_scan_page}, rate_limit={rate_limit}s …")
+    click.echo(
+        f"Discovering {len(parts)} parts ({parts_from}–{parts_to}), "
+        f"max_scan_page={max_scan_page}, rate_limit={rate_limit}s …"
+    )
 
     async def _run() -> None:
         async with NWLRCrawler(
@@ -136,9 +136,7 @@ def discover(
 def fetch(part: int | None, limit: int) -> None:
     """Fetch metadata JSON + HTML for cases listed in the manifest."""
     if not _MANIFEST.exists():
-        raise click.ClickException(
-            "Manifest not found. Run `discover` first."
-        )
+        raise click.ClickException("Manifest not found. Run `discover` first.")
 
     email = settings.nwlr_email
     password = settings.nwlr_password
@@ -197,7 +195,9 @@ def fetch(part: int | None, limit: int) -> None:
 
 
 @cli.command()
-@click.option("--limit", default=0, type=int, show_default=True, help="Max records to parse (0=all).")
+@click.option(
+    "--limit", default=0, type=int, show_default=True, help="Max records to parse (0=all)."
+)
 @click.option(
     "--overwrite",
     is_flag=True,
@@ -280,8 +280,14 @@ def parse(limit: int, overwrite: bool) -> None:
 @cli.command()
 @click.option("--limit", default=0, type=int, show_default=True, help="Max cases to embed (0=all).")
 @click.option("--batch-size", default=128, type=int, show_default=True)
-@click.option("--sleep", "sleep_between_batches", default=0.0, type=float, show_default=True,
-              help="Seconds between Voyage AI batches (use ~21 for free-tier limits).")
+@click.option(
+    "--sleep",
+    "sleep_between_batches",
+    default=0.0,
+    type=float,
+    show_default=True,
+    help="Seconds between Voyage AI batches (use ~21 for free-tier limits).",
+)
 def embed(limit: int, batch_size: int, sleep_between_batches: float) -> None:
     """Chunk, embed, and upsert NWLR cases into case_segments.
 
@@ -300,7 +306,7 @@ def embed(limit: int, batch_size: int, sleep_between_batches: float) -> None:
     click.echo(f"Embedding {len(records)} NWLR cases …")
 
     async def _run() -> None:
-        from db import get_pool, close_pool  # noqa: PLC0415
+        from db import close_pool, get_pool  # noqa: PLC0415
         from ingestion.embedding.chunker import LegalTextChunker  # noqa: PLC0415
         from ingestion.embedding.embedder import CorpusEmbedder  # noqa: PLC0415
         from ingestion.loaders.db_loader import BulkCaseLoader  # noqa: PLC0415
@@ -322,9 +328,7 @@ def embed(limit: int, batch_size: int, sleep_between_batches: float) -> None:
                 citation = rec.get("citation") or ""
                 async with pool.acquire() as conn:
                     # Look up DB case ID by citation
-                    row = await conn.fetchrow(
-                        "SELECT id FROM cases WHERE citation = $1", citation
-                    )
+                    row = await conn.fetchrow("SELECT id FROM cases WHERE citation = $1", citation)
                     if row is None:
                         logger.warning("nwlr_embed.case_not_found", citation=citation)
                         errors += 1
@@ -390,7 +394,9 @@ def embed(limit: int, batch_size: int, sleep_between_batches: float) -> None:
 
 
 @cli.command()
-@click.option("--limit", default=0, type=int, show_default=True, help="Max records to load (0=all).")
+@click.option(
+    "--limit", default=0, type=int, show_default=True, help="Max records to load (0=all)."
+)
 def load(limit: int) -> None:
     """Load parsed NWLR.jsonl records into PostgreSQL."""
     if not _OUT_JSONL.exists():
@@ -404,7 +410,7 @@ def load(limit: int) -> None:
     click.echo(f"Loading {len(records)} records into PostgreSQL …")
 
     async def _run() -> None:
-        from db import get_pool, close_pool  # noqa: PLC0415
+        from db import close_pool, get_pool  # noqa: PLC0415
         from ingestion.loaders.db_loader import BulkCaseLoader  # noqa: PLC0415
 
         pool = await get_pool()
@@ -416,8 +422,7 @@ def load(limit: int) -> None:
             await close_pool()
 
         click.echo(
-            f"Loaded: {stats['loaded']}  Errors: {stats['errors']}  "
-            f"Total: {stats['total']}"
+            f"Loaded: {stats['loaded']}  Errors: {stats['errors']}  " f"Total: {stats['total']}"
         )
 
     asyncio.run(_run())
@@ -438,8 +443,12 @@ def status() -> None:
         manifest_cases = sum(len(v) for v in m.values())
 
     # Cached files
-    meta_count = len(list((_RAW_DIR / "meta").glob("*.json"))) if (_RAW_DIR / "meta").exists() else 0
-    html_count = len(list((_RAW_DIR / "html").glob("*.html"))) if (_RAW_DIR / "html").exists() else 0
+    meta_count = (
+        len(list((_RAW_DIR / "meta").glob("*.json"))) if (_RAW_DIR / "meta").exists() else 0
+    )
+    html_count = (
+        len(list((_RAW_DIR / "html").glob("*.html"))) if (_RAW_DIR / "html").exists() else 0
+    )
 
     # Parsed JSONL
     jsonl_count = 0

@@ -21,10 +21,10 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-from dataclasses import asdict
 import logging
-import time
 import sys
+import time
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -186,35 +186,43 @@ class RetrievalEngine:
                 # run truly in parallel (asyncpg connections are not reentrant).
                 for emb in expanded.dense_embeddings:
                     if emb:
+
                         async def _dense(e=emb):
                             async with get_connection() as _c:
                                 return await self.dense.search(
-                                    _c, e,
+                                    _c,
+                                    e,
                                     limit=self.config.dense_limit,
                                     court_codes=court_filter,
                                     year_min=year_min,
                                     year_max=year_max,
                                 )
+
                         search_tasks.append(_dense())
 
                 # Sparse search — each task acquires its own connection
                 for text in expanded.sparse_texts:
+
                     async def _sparse(t=text):
                         async with get_connection() as _c:
                             return await self.sparse.search(
-                                _c, t,
+                                _c,
+                                t,
                                 limit=self.config.sparse_limit,
                                 court_codes=court_filter,
                                 year_min=year_min,
                                 year_max=year_max,
                             )
+
                     search_tasks.append(_sparse())
 
                 # Exact search — each task acquires its own connection
                 for ref in parsed.case_references[:2]:
+
                     async def _exact(r=ref):
                         async with get_connection() as _c:
                             return await self.exact.search(_c, r)
+
                     search_tasks.append(_exact())
 
                 stage_counts["stage1_tasks"] = len(search_tasks)
@@ -295,8 +303,7 @@ class RetrievalEngine:
 
             # ── Step 7: Stage 3 — LLM reranking (+ statute retrieval in parallel)
             parallel_started = time.perf_counter()
-            statute_embedding = (expanded.dense_embeddings[0]
-                                 if expanded.dense_embeddings else None)
+            statute_embedding = expanded.dense_embeddings[0] if expanded.dense_embeddings else None
             rerank_task = self.reranker.rerank(
                 query=query,
                 candidates=candidates,
@@ -329,7 +336,11 @@ class RetrievalEngine:
         stage_counts["results_returned"] = len(final_results)
         logger.info(
             "engine.search_complete query=%.40s results=%d elapsed_ms=%d cache_parsed=%s cache_candidates=%s",
-            query, len(final_results), elapsed_ms, cache_status["parsed_query"], cache_status["candidate_results"],
+            query,
+            len(final_results),
+            elapsed_ms,
+            cache_status["parsed_query"],
+            cache_status["candidate_results"],
         )
 
         return {
@@ -349,9 +360,7 @@ class RetrievalEngine:
             },
         }
 
-    async def _fetch_authority_scores(
-        self, conn, case_ids: list[str]
-    ) -> dict[str, int]:
+    async def _fetch_authority_scores(self, conn, case_ids: list[str]) -> dict[str, int]:
         """Return {case_id: times_cited} for the given case IDs."""
         if not case_ids:
             return {}
@@ -362,9 +371,7 @@ class RetrievalEngine:
             logger.debug("engine.authority_scores_failed exc=%s", exc)
             return {}
 
-    async def _fetch_case_metadata(
-        self, conn, case_ids: list[str]
-    ) -> dict[str, dict]:
+    async def _fetch_case_metadata(self, conn, case_ids: list[str]) -> dict[str, dict]:
         """Return {case_id: metadata_dict} for display in results."""
         if not case_ids:
             return {}
@@ -396,9 +403,10 @@ async def create_engine(
 
     Call once at startup; the engine is stateless and safe to reuse.
     """
-    from config import settings
-    import voyageai
     import anthropic
+    import voyageai
+
+    from config import settings
     from retrieval.cache import LegalRetrievalCache
 
     voyage_client = voyageai.AsyncClient(api_key=settings.embedding_api_key)

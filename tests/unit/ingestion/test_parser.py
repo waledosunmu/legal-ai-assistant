@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date, timezone, datetime
+from datetime import date
 
 import pytest
 
 from ingestion.parsing.metadata_extractor import JudgmentMetadata, MetadataExtractor
 from ingestion.parsing.text_cleaner import JudgmentTextCleaner
 from ingestion.sources.nigerialii import Court, RawJudgment
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -262,9 +261,7 @@ class TestMetadataExtractorLeadJudge:
             ("Read by OKO, JCA on behalf of the panel.", "OKO"),
         ],
     )
-    def test_extract_lead_judge(
-        self, text_fragment: str, expected_name_contains: str
-    ) -> None:
+    def test_extract_lead_judge(self, text_fragment: str, expected_name_contains: str) -> None:
         raw = make_raw(full_text=text_fragment)
         metadata = self.extractor.extract(raw)
         assert metadata.lead_judge is not None

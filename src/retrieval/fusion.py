@@ -115,19 +115,21 @@ class RRFFusion:
             dense_rank = _find_rank(sid, dense_results)
             sparse_rank = _find_rank(sid, sparse_results)
 
-            candidates.append(CandidateResult(
-                case_id=case_id,
-                segment_id=sid,
-                segment_type=seg_type,
-                content=row.get("content", ""),
-                court=court,
-                year=year if isinstance(year, int) else current_year,
-                opinion_type=opinion,
-                dense_rank=dense_rank,
-                sparse_rank=sparse_rank,
-                fusion_score=fusion_score,
-                boosted_score=boosted,
-            ))
+            candidates.append(
+                CandidateResult(
+                    case_id=case_id,
+                    segment_id=sid,
+                    segment_type=seg_type,
+                    content=row.get("content", ""),
+                    court=court,
+                    year=year if isinstance(year, int) else current_year,
+                    opinion_type=opinion,
+                    dense_rank=dense_rank,
+                    sparse_rank=sparse_rank,
+                    fusion_score=fusion_score,
+                    boosted_score=boosted,
+                )
+            )
 
         # ── Step 5: deduplicate by case_id (keep best segment per case) ───────
         best_by_case: dict[str, CandidateResult] = {}

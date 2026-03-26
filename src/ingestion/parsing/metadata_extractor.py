@@ -14,7 +14,7 @@ class JudgmentMetadata:
     """Structured metadata extracted from a raw judgment."""
 
     case_name: str
-    case_name_short: str         # e.g. "Malami v. Ohikhuare"
+    case_name_short: str  # e.g. "Malami v. Ohikhuare"
     applicant: str
     respondent: str
     court: str
@@ -45,65 +45,157 @@ class MetadataExtractor:
     # Titles and postnominals to skip when deriving short names
     _SKIP_WORDS: frozenset[str] = frozenset(
         {
-            "ALH.", "ALHAJI", "CHIEF", "DR.", "DR", "ENGR.", "HON.", "MR.",
-            "MRS.", "MS.", "AMBASSADOR", "SIR", "OFR", "CON", "GCON", "SAN",
-            "KFR", "CFR", "OON", "MFR", "LTCOL", "GEN.", "COL.", "PROF.",
+            "ALH.",
+            "ALHAJI",
+            "CHIEF",
+            "DR.",
+            "DR",
+            "ENGR.",
+            "HON.",
+            "MR.",
+            "MRS.",
+            "MS.",
+            "AMBASSADOR",
+            "SIR",
+            "OFR",
+            "CON",
+            "GCON",
+            "SAN",
+            "KFR",
+            "CFR",
+            "OON",
+            "MFR",
+            "LTCOL",
+            "GEN.",
+            "COL.",
+            "PROF.",
         }
     )
 
     # Keyword sets for each area-of-law label
     _AREA_KEYWORDS: dict[str, list[str]] = {
         "contract": [
-            "contract", "breach of contract", "agreement", "offer",
-            "acceptance", "consideration", "quantum meruit",
+            "contract",
+            "breach of contract",
+            "agreement",
+            "offer",
+            "acceptance",
+            "consideration",
+            "quantum meruit",
         ],
         "land_law": [
-            "land", "property", "trespass", "certificate of occupancy",
-            "right of occupancy", "revocation", "leasehold", "freehold",
-            "possessory", "root of title",
+            "land",
+            "property",
+            "trespass",
+            "certificate of occupancy",
+            "right of occupancy",
+            "revocation",
+            "leasehold",
+            "freehold",
+            "possessory",
+            "root of title",
         ],
         "criminal": [
-            "murder", "robbery", "theft", "criminal", "conviction",
-            "sentence", "the state v.", "federal republic of nigeria",
-            "charge", "culpable homicide", "armed robbery",
+            "murder",
+            "robbery",
+            "theft",
+            "criminal",
+            "conviction",
+            "sentence",
+            "the state v.",
+            "federal republic of nigeria",
+            "charge",
+            "culpable homicide",
+            "armed robbery",
         ],
         "company_law": [
-            "company", "winding up", "shareholder", "director",
-            "CAMA", "Companies and Allied Matters", "incorporation",
-            "debenture", "memorandum of association",
+            "company",
+            "winding up",
+            "shareholder",
+            "director",
+            "CAMA",
+            "Companies and Allied Matters",
+            "incorporation",
+            "debenture",
+            "memorandum of association",
         ],
         "constitutional": [
-            "constitution", "fundamental rights", "human rights",
-            "enforcement of fundamental rights", "section 36", "section 46",
-            "constitutional", "CFRN",
+            "constitution",
+            "fundamental rights",
+            "human rights",
+            "enforcement of fundamental rights",
+            "section 36",
+            "section 46",
+            "constitutional",
+            "CFRN",
         ],
         "election_petition": [
-            "election", "petition", "electoral", "INEC",
-            "tribunal", "governorship", "senatorial", "governorship election",
+            "election",
+            "petition",
+            "electoral",
+            "INEC",
+            "tribunal",
+            "governorship",
+            "senatorial",
+            "governorship election",
         ],
         "tort": [
-            "negligence", "nuisance", "defamation", "libel",
-            "personal injury", "damages", "nervous shock", "occupier",
+            "negligence",
+            "nuisance",
+            "defamation",
+            "libel",
+            "personal injury",
+            "damages",
+            "nervous shock",
+            "occupier",
         ],
         "family_law": [
-            "marriage", "divorce", "custody", "matrimonial",
-            "child", "inheritance", "succession", "intestate",
+            "marriage",
+            "divorce",
+            "custody",
+            "matrimonial",
+            "child",
+            "inheritance",
+            "succession",
+            "intestate",
         ],
         "employment": [
-            "employment", "labour", "worker", "termination",
-            "industrial court", "wrongful dismissal", "reinstatement",
+            "employment",
+            "labour",
+            "worker",
+            "termination",
+            "industrial court",
+            "wrongful dismissal",
+            "reinstatement",
         ],
         "admiralty": [
-            "admiralty", "shipping", "vessel", "maritime",
-            "carriage of goods", "bill of lading",
+            "admiralty",
+            "shipping",
+            "vessel",
+            "maritime",
+            "carriage of goods",
+            "bill of lading",
         ],
         "banking_finance": [
-            "bank", "loan", "mortgage", "debenture", "finance",
-            "CBN", "central bank", "credit facility",
+            "bank",
+            "loan",
+            "mortgage",
+            "debenture",
+            "finance",
+            "CBN",
+            "central bank",
+            "credit facility",
         ],
         "taxation": [
-            "tax", "taxation", "FIRS", "customs", "duty", "VAT",
-            "income tax", "capital gains", "stamp duty",
+            "tax",
+            "taxation",
+            "FIRS",
+            "customs",
+            "duty",
+            "VAT",
+            "income tax",
+            "capital gains",
+            "stamp duty",
         ],
     }
 
@@ -154,9 +246,7 @@ class MetadataExtractor:
         before applying the "X v. Y" pattern.
         """
         # Remove citation/date portion: "(SC. 373/2015) [2017] NGSC 5 ..."
-        name_portion = re.sub(
-            r"\s*\([A-Z/.\s\d]+\)\s*\[\d{4}\].*$", "", case_name
-        ).strip()
+        name_portion = re.sub(r"\s*\([A-Z/.\s\d]+\)\s*\[\d{4}\].*$", "", case_name).strip()
         # Also remove trailing bare parentheticals with a date
         name_portion = re.sub(r"\s*\(\d{1,2}\s+\w+\s+\d{4}\)\s*$", "", name_portion).strip()
 
@@ -175,8 +265,7 @@ class MetadataExtractor:
         """Extract the last significant word from a party name."""
         words = full.replace("&", "").split()
         significant = [
-            w for w in words
-            if w.upper().rstrip(".") not in self._SKIP_WORDS and len(w) > 2
+            w for w in words if w.upper().rstrip(".") not in self._SKIP_WORDS and len(w) > 2
         ]
         source = significant if significant else words
         return source[-1].title() if source else full[:20]
@@ -219,6 +308,7 @@ class MetadataExtractor:
         for fmt in ("%Y-%m-%d", "%d %B %Y", "%d %b %Y"):
             try:
                 from datetime import datetime
+
                 return datetime.strptime(text.strip(), fmt).date()
             except ValueError:
                 continue

@@ -14,14 +14,14 @@ _BASE_URL = "https://api.laws.africa/v3"
 
 # Priority statutes for the MVP (5 motion types)
 PRIORITY_LEGISLATION: list[str] = [
-    "/akn/ng/act/1999/constitution",   # CFRN 1999
-    "/akn/ng/act/2020/3",              # CAMA 2020
-    "/akn/ng/act/2011/18",             # Evidence Act 2011
-    "/akn/ng/act/2004/sh6",            # Sheriffs & Civil Process Act
-    "/akn/ng/act/2023/arb",            # Arbitration & Mediation Act 2023
-    "/akn/ng/act/1990/fhc",            # Federal High Court Act
-    "/akn/ng/act/2004/ca",             # Court of Appeal Act
-    "/akn/ng/act/2004/sc",             # Supreme Court Act
+    "/akn/ng/act/1999/constitution",  # CFRN 1999
+    "/akn/ng/act/2020/3",  # CAMA 2020
+    "/akn/ng/act/2011/18",  # Evidence Act 2011
+    "/akn/ng/act/2004/sh6",  # Sheriffs & Civil Process Act
+    "/akn/ng/act/2023/arb",  # Arbitration & Mediation Act 2023
+    "/akn/ng/act/1990/fhc",  # Federal High Court Act
+    "/akn/ng/act/2004/ca",  # Court of Appeal Act
+    "/akn/ng/act/2004/sc",  # Supreme Court Act
 ]
 
 
@@ -29,10 +29,10 @@ PRIORITY_LEGISLATION: list[str] = [
 class LegislationSection:
     """A single section of a statute, ready for embedding."""
 
-    title: str              # Full statute title
+    title: str  # Full statute title
     short_title: str | None
-    section: str            # Section heading, e.g. "Section 36"
-    content: str            # Full text of the section
+    section: str  # Section heading, e.g. "Section 36"
+    content: str  # Full text of the section
     year: int | None
     frbr_uri: str
     jurisdiction: str = "NG"
@@ -47,7 +47,7 @@ class LegislationRecord:
     title: str
     short_title: str | None
     year: int | None
-    nature: str             # act, regulation, etc.
+    nature: str  # act, regulation, etc.
     publication_date: str | None
     repeal_status: str | None
     sections: list[LegislationSection] = field(default_factory=list)
@@ -94,8 +94,8 @@ class LawsAfricaClient:
                 response.raise_for_status()
                 data = response.json()
                 works.extend(data.get("results", []))
-                url = data.get("next")   # next page URL or None
-                params = {}              # params only for first request
+                url = data.get("next")  # next page URL or None
+                params = {}  # params only for first request
 
         logger.info("laws_africa.listed_works", country=country, count=len(works))
         return works
@@ -136,10 +136,7 @@ class LawsAfricaClient:
 
         # Extract basic metadata from the HTML
         soup = BeautifulSoup(html, "lxml")
-        title = (
-            soup.select_one("h1, .akn-FRBRalias, title")
-            or soup.select_one("title")
-        )
+        title = soup.select_one("h1, .akn-FRBRalias, title") or soup.select_one("title")
         title_text = title.get_text(strip=True) if title else frbr_uri
 
         year = self._extract_year_from_uri(frbr_uri)
@@ -179,9 +176,7 @@ class LawsAfricaClient:
         sections: list[LegislationSection] = []
 
         # Try AKN-style section elements first
-        akn_sections = soup.select(
-            ".akn-section, .akn-article, section[class*='akn']"
-        )
+        akn_sections = soup.select(".akn-section, .akn-article, section[class*='akn']")
         if akn_sections:
             for el in akn_sections:
                 heading = el.select_one("h1, h2, h3, h4, .akn-num, .akn-heading")
@@ -245,5 +240,6 @@ class LawsAfricaClient:
     def _extract_year_from_uri(frbr_uri: str) -> int | None:
         """Extract year from an AKN FRBR URI like /akn/ng/act/2020/3."""
         import re
+
         match = re.search(r"/(\d{4})/", frbr_uri)
         return int(match.group(1)) if match else None

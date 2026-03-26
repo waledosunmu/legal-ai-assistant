@@ -142,9 +142,7 @@ class CitationVerifier:
                         "may not match the actual holding. Please verify the "
                         "quoted proposition against the judgment text."
                     )
-                    result["closest_actual_holding"] = attribution.get(
-                        "closest_holding", ""
-                    )
+                    result["closest_actual_holding"] = attribution.get("closest_holding", "")
                     return result
 
             # All checks passed
@@ -200,9 +198,7 @@ class CitationVerifier:
         db_norm = re.sub(r"\s+", " ", db_format.strip().lower())
         return cited_norm in db_norm or db_norm in cited_norm
 
-    async def _verify_holding_attribution(
-        self, conn, case_id: str, claimed_principle: str
-    ) -> dict:
+    async def _verify_holding_attribution(self, conn, case_id: str, claimed_principle: str) -> dict:
         """Verify that the cited principle appears in the case's holdings/ratio."""
         rows = await conn.fetch(_HOLDINGS_SQL, case_id)
         if not rows:

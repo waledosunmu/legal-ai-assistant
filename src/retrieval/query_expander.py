@@ -160,6 +160,7 @@ class QueryExpander:
         if parsed.detected_concepts:
             # Use human-readable phrases instead of internal concept keys
             from retrieval.query_parser import LEGAL_CONCEPTS
+
             concept_phrases: list[str] = []
             for concept in parsed.detected_concepts[:5]:
                 keywords = LEGAL_CONCEPTS.get(concept, [])
@@ -200,4 +201,5 @@ def _make_step_back(parsed: ParsedQuery) -> str:
 
 def _get_settings():
     from config import settings
+
     return settings

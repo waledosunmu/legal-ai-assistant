@@ -139,21 +139,21 @@ class StatuteRetriever:
                 row_id = row.get("id", "")
                 if row_id not in seen_ids:
                     seen_ids.add(row_id)
-                    results.append({
-                        "type": "semantic_match",
-                        "id": row_id,
-                        "title": row.get("title", ""),
-                        "short_title": row.get("short_title"),
-                        "section": row.get("section"),
-                        "content": (row.get("content") or "")[:400],
-                        "relevance_score": 1.0 - float(row.get("distance") or 1.0),
-                    })
+                    results.append(
+                        {
+                            "type": "semantic_match",
+                            "id": row_id,
+                            "title": row.get("title", ""),
+                            "short_title": row.get("short_title"),
+                            "section": row.get("section"),
+                            "content": (row.get("content") or "")[:400],
+                            "relevance_score": 1.0 - float(row.get("distance") or 1.0),
+                        }
+                    )
 
         return results
 
-    async def _semantic_search(
-        self, conn, embedding: list[float], limit: int
-    ) -> list[dict]:
+    async def _semantic_search(self, conn, embedding: list[float], limit: int) -> list[dict]:
         emb_str = "[" + ",".join(str(v) for v in embedding) + "]"
         try:
             rows = await conn.fetch(_SEMANTIC_STATUTE_SQL, emb_str, limit)

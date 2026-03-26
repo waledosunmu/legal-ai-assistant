@@ -3,21 +3,19 @@
 from __future__ import annotations
 
 import json
-import math
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from retrieval.cache import (
-    LegalRetrievalCache,
-    _cosine,
-    _sha,
     _TTL_L1,
     _TTL_L2,
     _TTL_L3,
     _TTL_L4,
+    LegalRetrievalCache,
+    _cosine,
+    _sha,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -252,10 +250,12 @@ class TestInvalidation:
     @pytest.mark.asyncio
     async def test_invalidation_deletes_l3_and_l4_keys(self) -> None:
         cache, redis = _make_cache()
-        redis.keys = AsyncMock(side_effect=[
-            ["ret:key1", "ret:key2"],   # L3 keys
-            ["sem:key3"],               # L4 keys
-        ])
+        redis.keys = AsyncMock(
+            side_effect=[
+                ["ret:key1", "ret:key2"],  # L3 keys
+                ["sem:key3"],  # L4 keys
+            ]
+        )
         await cache.invalidate_candidates_and_semantic()
         redis.delete.assert_called_once_with("ret:key1", "ret:key2", "sem:key3")
 

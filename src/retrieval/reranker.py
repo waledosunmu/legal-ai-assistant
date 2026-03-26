@@ -103,31 +103,32 @@ class LLMReranker:
 
             if llm_score is not None:
                 relevance_score = (
-                    self.config.llm_weight * llm_score
-                    + self.config.fusion_weight * norm_fusion
+                    self.config.llm_weight * llm_score + self.config.fusion_weight * norm_fusion
                 )
             else:
                 relevance_score = norm_fusion
 
             explanation = explanations.get(candidate.segment_id, "")
 
-            results.append(SearchResult(
-                case_id=candidate.case_id,
-                case_name=case_name,
-                case_name_short=_short_name(case_name),
-                citation=citation,
-                court=court,
-                year=year,
-                relevance_score=min(relevance_score, 1.0),
-                relevance_explanation=explanation[:150],
-                authority_score=authority_score,
-                times_cited=times_cited,
-                matched_segment={
-                    "type": candidate.segment_type,
-                    "content": candidate.content[:500],
-                },
-                verification_status="verified",
-            ))
+            results.append(
+                SearchResult(
+                    case_id=candidate.case_id,
+                    case_name=case_name,
+                    case_name_short=_short_name(case_name),
+                    citation=citation,
+                    court=court,
+                    year=year,
+                    relevance_score=min(relevance_score, 1.0),
+                    relevance_explanation=explanation[:150],
+                    authority_score=authority_score,
+                    times_cited=times_cited,
+                    matched_segment={
+                        "type": candidate.segment_type,
+                        "content": candidate.content[:500],
+                    },
+                    verification_status="verified",
+                )
+            )
 
         results.sort(key=lambda r: r.relevance_score, reverse=True)
         return results[:top_n]
@@ -141,16 +142,19 @@ class LLMReranker:
 
         Returns (llm_scores, explanations) where keys are segment_ids.
         """
-        cases_json = json.dumps([
-            {
-                "id": c.segment_id,
-                "court": c.court,
-                "year": c.year,
-                "segment_type": c.segment_type,
-                "content": c.content[:300],
-            }
-            for c in candidates
-        ], indent=2)
+        cases_json = json.dumps(
+            [
+                {
+                    "id": c.segment_id,
+                    "court": c.court,
+                    "year": c.year,
+                    "segment_type": c.segment_type,
+                    "content": c.content[:300],
+                }
+                for c in candidates
+            ],
+            indent=2,
+        )
 
         prompt = _RERANK_PROMPT.format(query=query, cases_json=cases_json)
 
@@ -208,4 +212,5 @@ def _short_name(case_name: str, max_length: int = 60) -> str:
 
 def _get_settings():
     from config import settings
+
     return settings

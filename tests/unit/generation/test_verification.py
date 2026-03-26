@@ -9,7 +9,6 @@ import pytest
 from generation.models import VerificationStatus
 from generation.verification import CitationVerifier
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
@@ -49,10 +48,12 @@ class TestVerifierNoDb:
     @pytest.mark.asyncio
     async def test_batch_without_db(self):
         verifier = CitationVerifier(db_pool=None)
-        results = await verifier.verify_batch([
-            {"name": "A v. B"},
-            {"name": "C v. D"},
-        ])
+        results = await verifier.verify_batch(
+            [
+                {"name": "A v. B"},
+                {"name": "C v. D"},
+            ]
+        )
         assert len(results) == 2
         assert all(r["status"] == VerificationStatus.NOT_IN_CORPUS.value for r in results)
 
@@ -70,10 +71,12 @@ class TestExistenceCheck:
         conn.fetch = AsyncMock(return_value=[])
 
         verifier = CitationVerifier(db_pool=pool)
-        result = await verifier.verify_single({
-            "case_id": "11111111-1111-1111-1111-111111111111",
-            "name": "Madukolu v. Nkemdilim",
-        })
+        result = await verifier.verify_single(
+            {
+                "case_id": "11111111-1111-1111-1111-111111111111",
+                "name": "Madukolu v. Nkemdilim",
+            }
+        )
         assert result["checks"]["existence"] is True
         assert result["case_id"] == case["id"]
 
@@ -101,10 +104,12 @@ class TestOverruledDetection:
         conn.fetch = AsyncMock(return_value=[])
 
         verifier = CitationVerifier(db_pool=pool)
-        result = await verifier.verify_single({
-            "case_id": "11111111-1111-1111-1111-111111111111",
-            "name": "Old v. Case",
-        })
+        result = await verifier.verify_single(
+            {
+                "case_id": "11111111-1111-1111-1111-111111111111",
+                "name": "Old v. Case",
+            }
+        )
         assert result["status"] == VerificationStatus.OVERRULED.value
         assert "OVERRULED" in result.get("warning", "")
 
@@ -114,19 +119,13 @@ class TestOverruledDetection:
 
 class TestFormatCheck:
     def test_matching_format(self):
-        assert CitationVerifier._check_format(
-            "(1962) 2 SCNLR 341", "(1962) 2 SCNLR 341"
-        )
+        assert CitationVerifier._check_format("(1962) 2 SCNLR 341", "(1962) 2 SCNLR 341")
 
     def test_format_subset_match(self):
-        assert CitationVerifier._check_format(
-            "2 SCNLR 341", "(1962) 2 SCNLR 341"
-        )
+        assert CitationVerifier._check_format("2 SCNLR 341", "(1962) 2 SCNLR 341")
 
     def test_mismatched_format(self):
-        assert not CitationVerifier._check_format(
-            "(2020) 15 NWLR 1", "(1962) 2 SCNLR 341"
-        )
+        assert not CitationVerifier._check_format("(2020) 15 NWLR 1", "(1962) 2 SCNLR 341")
 
     def test_empty_db_format(self):
         assert not CitationVerifier._check_format("(2020) 1 NWLR 1", "")
@@ -139,9 +138,13 @@ class TestHoldingAttribution:
     @pytest.mark.asyncio
     async def test_high_overlap_verified(self):
         pool, conn = _mock_pool()
-        conn.fetch = AsyncMock(return_value=[
-            {"content": "The court must have jurisdiction over the subject matter and the parties before it can validly adjudicate"},
-        ])
+        conn.fetch = AsyncMock(
+            return_value=[
+                {
+                    "content": "The court must have jurisdiction over the subject matter and the parties before it can validly adjudicate"
+                },
+            ]
+        )
 
         verifier = CitationVerifier(db_pool=pool)
         result = await verifier._verify_holding_attribution(
@@ -155,9 +158,11 @@ class TestHoldingAttribution:
     @pytest.mark.asyncio
     async def test_low_overlap_not_verified(self):
         pool, conn = _mock_pool()
-        conn.fetch = AsyncMock(return_value=[
-            {"content": "Damages for breach of contract shall be assessed by evidence"},
-        ])
+        conn.fetch = AsyncMock(
+            return_value=[
+                {"content": "Damages for breach of contract shall be assessed by evidence"},
+            ]
+        )
 
         verifier = CitationVerifier(db_pool=pool)
         result = await verifier._verify_holding_attribution(
@@ -193,17 +198,23 @@ class TestFullVerificationFlow:
         active_case = _case_row(status="active")
         conn.fetchrow = AsyncMock(return_value=active_case)
         # Holdings that match the principle
-        conn.fetch = AsyncMock(return_value=[
-            {"content": "jurisdiction is fundamental to the competence of a court to entertain any matter"},
-        ])
+        conn.fetch = AsyncMock(
+            return_value=[
+                {
+                    "content": "jurisdiction is fundamental to the competence of a court to entertain any matter"
+                },
+            ]
+        )
 
         verifier = CitationVerifier(db_pool=pool)
-        result = await verifier.verify_single({
-            "case_id": "11111111-1111-1111-1111-111111111111",
-            "name": "Madukolu v. Nkemdilim",
-            "citation": "(1962) 2 SCNLR 341",
-            "principle_cited": "jurisdiction is fundamental to the competence of a court",
-        })
+        result = await verifier.verify_single(
+            {
+                "case_id": "11111111-1111-1111-1111-111111111111",
+                "name": "Madukolu v. Nkemdilim",
+                "citation": "(1962) 2 SCNLR 341",
+                "principle_cited": "jurisdiction is fundamental to the competence of a court",
+            }
+        )
         assert result["verified"] is True
         assert result["status"] == VerificationStatus.FULLY_VERIFIED.value
 
@@ -214,17 +225,21 @@ class TestFullVerificationFlow:
         active_case = _case_row(status="active")
         conn.fetchrow = AsyncMock(return_value=active_case)
         # Holdings that DON'T match the principle
-        conn.fetch = AsyncMock(return_value=[
-            {"content": "The limitation period for contract claims is six years"},
-        ])
+        conn.fetch = AsyncMock(
+            return_value=[
+                {"content": "The limitation period for contract claims is six years"},
+            ]
+        )
 
         verifier = CitationVerifier(db_pool=pool)
-        result = await verifier.verify_single({
-            "case_id": "11111111-1111-1111-1111-111111111111",
-            "name": "Madukolu v. Nkemdilim",
-            "citation": "(1962) 2 SCNLR 341",
-            "principle_cited": "jurisdiction is a threshold issue in every court proceeding",
-        })
+        result = await verifier.verify_single(
+            {
+                "case_id": "11111111-1111-1111-1111-111111111111",
+                "name": "Madukolu v. Nkemdilim",
+                "citation": "(1962) 2 SCNLR 341",
+                "principle_cited": "jurisdiction is a threshold issue in every court proceeding",
+            }
+        )
         assert result["verified"] is False
         assert result["status"] == VerificationStatus.CASE_VERIFIED.value
         assert "may not match" in result.get("warning", "")
@@ -234,6 +249,7 @@ class TestFullVerificationFlow:
         pool, conn = _mock_pool()
 
         call_count = 0
+
         async def _mock_fetchrow(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -245,10 +261,12 @@ class TestFullVerificationFlow:
         conn.fetch = AsyncMock(return_value=[])
 
         verifier = CitationVerifier(db_pool=pool)
-        results = await verifier.verify_batch([
-            {"case_id": "11111111-1111-1111-1111-111111111111", "name": "Found v. Case"},
-            {"name": "Missing v. Case"},
-        ])
+        results = await verifier.verify_batch(
+            [
+                {"case_id": "11111111-1111-1111-1111-111111111111", "name": "Found v. Case"},
+                {"name": "Missing v. Case"},
+            ]
+        )
         assert len(results) == 2
         found_statuses = {r["status"] for r in results}
         assert VerificationStatus.NOT_IN_CORPUS.value in found_statuses

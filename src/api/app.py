@@ -12,8 +12,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from api.routers.search import router as search_router
 from api.routers.generate import router as generate_router
+from api.routers.search import router as search_router
 
 logger = logging.getLogger(__name__)
 
@@ -46,14 +46,15 @@ async def lifespan(app: FastAPI):
     global _engine, _pipeline
 
     logger.info("api.startup: initialising DB pool, retrieval engine, generation pipeline")
-    from db import get_pool
-    from retrieval.engine import create_engine
-    from generation.pipeline import MotionGenerationPipeline
-    from generation.verification import CitationVerifier
-    from config import settings
     import anthropic
 
-    pool = await get_pool()          # warm up asyncpg connection pool
+    from config import settings
+    from db import get_pool
+    from generation.pipeline import MotionGenerationPipeline
+    from generation.verification import CitationVerifier
+    from retrieval.engine import create_engine
+
+    pool = await get_pool()  # warm up asyncpg connection pool
     _engine = await create_engine()
 
     anthropic_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
