@@ -1,0 +1,2 @@
+{"query_id":"sample-001","query_text":"What are the grounds for striking out a suit for want of jurisdiction in Nigeria?","relevant_case_ids":["replace-with-case-id-1"],"area_of_law":"constitutional_law","notes":"Replace with real case IDs from the corpus before running evaluation."}
+{"query_id":"sample-002","query_text":"When will a Nigerian court grant an interlocutory injunction to preserve the status quo?","relevant_case_ids":["replace-with-case-id-2"],"area_of_law":"contract_law","notes":"Use real case IDs and keep at least one query per supported motion type."}

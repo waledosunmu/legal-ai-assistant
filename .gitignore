@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+.venv/
+venv/
+.uv/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Data (large, gitignored — tracked via manifest.json only)
+data/raw/
+data/processed/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Pyright
+pyrightconfig.json
+
+# Logs
+*.log
+logs/
+
+# Alembic
+# (versions/ is committed — do not ignore)
+
+# Node (frontend, Phase 3)
+frontend/node_modules/
+frontend/.next/
+
+docs/
+tasks/
+CLAUDE.md
+.claude/
