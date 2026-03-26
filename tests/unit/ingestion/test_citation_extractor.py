@@ -261,9 +261,9 @@ class TestCitationTreatmentClassifier:
     )
     def test_classify(self, context: str, expected: str) -> None:
         result = CLASSIFIER.classify(context)
-        assert (
-            result == expected
-        ), f"Expected '{expected}' for context: {repr(context)!r}, got '{result}'"
+        assert result == expected, (
+            f"Expected '{expected}' for context: {repr(context)!r}, got '{result}'"
+        )
 
     def test_overruled_takes_priority_over_followed(self) -> None:
         # A sentence containing both "followed" and "overruled" signals
