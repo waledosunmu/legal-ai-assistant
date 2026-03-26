@@ -6,6 +6,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from anthropic.types import TextBlock
 
 from retrieval.query_parser import QueryParser, _layer1_regex, _layer2_rules
 
@@ -111,7 +112,7 @@ class TestLayer2:
 class TestLayer3:
     def _make_anthropic_client(self, response_json: dict) -> MagicMock:
         msg = MagicMock()
-        msg.content = [MagicMock(text=json.dumps(response_json))]
+        msg.content = [TextBlock(type="text", text=json.dumps(response_json))]
         messages_mock = MagicMock()
         messages_mock.create = AsyncMock(return_value=msg)
         client = MagicMock()

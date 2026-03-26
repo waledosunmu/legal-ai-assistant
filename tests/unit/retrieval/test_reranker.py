@@ -6,6 +6,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from anthropic.types import TextBlock
 
 from retrieval.models import CandidateResult
 from retrieval.reranker import LLMReranker, _short_name
@@ -48,7 +49,7 @@ def _meta(case_id: str, name: str = "Case Name", citation: str | None = None) ->
 
 def _make_anthropic(scores: list[dict]) -> MagicMock:
     msg = MagicMock()
-    msg.content = [MagicMock(text=json.dumps(scores))]
+    msg.content = [TextBlock(type="text", text=json.dumps(scores))]
     client = MagicMock()
     client.messages = MagicMock()
     client.messages.create = AsyncMock(return_value=msg)

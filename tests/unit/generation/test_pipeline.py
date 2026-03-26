@@ -10,6 +10,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from anthropic.types import TextBlock
 
 from generation.models import ArgumentSection, GenerationRequest
 from generation.pipeline import MotionGenerationPipeline, _extract_principle_near_case
@@ -21,7 +22,7 @@ from generation.verification import CitationVerifier
 def _mock_anthropic_response(text: str):
     """Create a mock Anthropic API response."""
     msg = MagicMock()
-    msg.content = [MagicMock(text=text)]
+    msg.content = [TextBlock(type="text", text=text)]
     return msg
 
 

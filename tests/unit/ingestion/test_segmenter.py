@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+from anthropic.types import TextBlock
+
 from ingestion.citations.extractor import ExtractedCitation
 from ingestion.citations.graph_builder import CitationEdge, CitationGraphBuilder
 from ingestion.segmentation.llm_segmenter import LLMSegmenter
@@ -252,10 +254,8 @@ class TestNLPSegmentClassifierReclassify:
 
 def _make_mock_client(response_text: str) -> MagicMock:
     """Return a mock Anthropic client that returns response_text."""
-    mock_content = MagicMock()
-    mock_content.text = response_text
     mock_response = MagicMock()
-    mock_response.content = [mock_content]
+    mock_response.content = [TextBlock(type="text", text=response_text)]
     mock_client = MagicMock()
     mock_client.messages.create.return_value = mock_response
     return mock_client

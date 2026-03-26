@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from anthropic.types import TextBlock
 
 from retrieval.models import ParsedQuery
 from retrieval.query_expander import QueryExpander, _make_step_back
@@ -19,8 +20,7 @@ def _make_voyage(embeddings: list[list[float]]) -> MagicMock:
 
 
 def _make_anthropic(text: str) -> MagicMock:
-    content = MagicMock(text=text)
-    msg = MagicMock(content=[content])
+    msg = MagicMock(content=[TextBlock(type="text", text=text)])
     client = MagicMock()
     client.messages = MagicMock()
     client.messages.create = AsyncMock(return_value=msg)
