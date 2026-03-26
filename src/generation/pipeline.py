@@ -17,8 +17,10 @@ import asyncio
 import json
 import logging
 import re
+from typing import cast
 
 import anthropic
+from anthropic.types import TextBlock
 
 from generation.models import (
     ArgumentSection,
@@ -110,14 +112,17 @@ class MotionGenerationPipeline:
             affidavit_paragraphs,
             introduction,
             conclusion,
-        ) = await asyncio.gather(
-            strength_task,
-            counter_task,
-            prayers_task,
-            grounds_task,
-            affidavit_task,
-            intro_task,
-            conclusion_task,
+        ) = cast(
+            tuple[list[dict], list[dict], list[str], list[str], list[str], str, str],
+            await asyncio.gather(
+                strength_task,
+                counter_task,
+                prayers_task,
+                grounds_task,
+                affidavit_task,
+                intro_task,
+                conclusion_task,
+            ),
         )
 
         audit.record("strength_assessed", {"report": strength_report})
@@ -219,7 +224,7 @@ Return ONLY a JSON array of issue strings. No markdown, no explanation.
             messages=[{"role": "user", "content": prompt}],
         )
 
-        content = response.content[0].text.strip()
+        content = next((b.text for b in response.content if isinstance(b, TextBlock)), "").strip()
         content = content.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
 
         try:
@@ -301,7 +306,9 @@ Return ONLY the argument text. No JSON, no markdown headers."""
             messages=[{"role": "user", "content": prompt}],
         )
 
-        argument_text = response.content[0].text.strip()
+        argument_text = next(
+            (b.text for b in response.content if isinstance(b, TextBlock)), ""
+        ).strip()
         extracted_citations = self._extract_citations_from_text(argument_text, relevant_cases)
         extracted_statutes = self._extract_statutes_from_text(argument_text, req.statutes)
 
@@ -359,7 +366,9 @@ Return JSON only:
             )
 
             try:
-                text = response.content[0].text.strip()
+                text = next(
+                    (b.text for b in response.content if isinstance(b, TextBlock)), ""
+                ).strip()
                 text = text.removeprefix("```json").removesuffix("```").strip()
                 assessment = json.loads(text)
                 assessment["issue_number"] = arg.issue_number
@@ -424,7 +433,7 @@ Return JSON:
         )
 
         try:
-            text = response.content[0].text.strip()
+            text = next((b.text for b in response.content if isinstance(b, TextBlock)), "").strip()
             text = text.removeprefix("```json").removesuffix("```").strip()
             result = json.loads(text)
             if isinstance(result, list):
@@ -467,7 +476,9 @@ Return ONLY a JSON array of prayer strings.
             temperature=0.2,
             messages=[{"role": "user", "content": prompt}],
         )
-        return self._parse_json_list(response.content[0].text)
+        return self._parse_json_list(
+            next((b.text for b in response.content if isinstance(b, TextBlock)), "")
+        )
 
     async def _generate_grounds(
         self,
@@ -498,7 +509,9 @@ Return ONLY a JSON array of ground strings.
             temperature=0.2,
             messages=[{"role": "user", "content": prompt}],
         )
-        return self._parse_json_list(response.content[0].text)
+        return self._parse_json_list(
+            next((b.text for b in response.content if isinstance(b, TextBlock)), "")
+        )
 
     async def _generate_affidavit(self, req: GenerationRequest) -> list[str]:
         """Generate affidavit paragraphs (facts as THAT statements) using Haiku."""
@@ -524,7 +537,9 @@ Return ONLY a JSON array of paragraph strings (without "THAT" prefix).
             temperature=0.2,
             messages=[{"role": "user", "content": prompt}],
         )
-        return self._parse_json_list(response.content[0].text)
+        return self._parse_json_list(
+            next((b.text for b in response.content if isinstance(b, TextBlock)), "")
+        )
 
     async def _generate_introduction(
         self,
@@ -556,7 +571,7 @@ Return ONLY the introduction text, no JSON."""
             temperature=0.2,
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.content[0].text.strip()
+        return next((b.text for b in response.content if isinstance(b, TextBlock)), "").strip()
 
     async def _generate_conclusion(
         self,
@@ -588,7 +603,7 @@ Return ONLY the conclusion text, no JSON."""
             temperature=0.2,
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.content[0].text.strip()
+        return next((b.text for b in response.content if isinstance(b, TextBlock)), "").strip()
 
     # ── Step 5: Document assembly ──────────────────────────────────────────────
 

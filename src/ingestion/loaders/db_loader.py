@@ -199,6 +199,7 @@ class BulkCaseLoader:
                 record.get("jurisdiction", "NG"),
             )
 
+        assert row is not None, "fetchrow returned None after upsert"
         case_id = str(row["id"])
         logger.debug("db_loader.upserted_case", case_id=case_id, case_name=record["case_name"])
         return case_id

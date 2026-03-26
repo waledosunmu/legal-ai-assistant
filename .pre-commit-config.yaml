@@ -6,6 +6,15 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: uv run pyright src/
+        language: system
+        pass_filenames: false
+        types: [python]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:

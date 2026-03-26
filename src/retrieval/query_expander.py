@@ -23,6 +23,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from anthropic.types import TextBlock
+
 from retrieval.models import ExpandedQueries, ParsedQuery
 
 logger = logging.getLogger(__name__)
@@ -97,13 +99,18 @@ class QueryExpander:
     async def _generate_hyde(self, query: str) -> str | None:
         """Generate a hypothetical document embedding (HyDE) via Claude Haiku."""
         try:
+            if self._anthropic is None:
+                return None
             settings = _get_settings()
             message = await self._anthropic.messages.create(
                 model=settings.extraction_model,
                 max_tokens=256,
                 messages=[{"role": "user", "content": _HYDE_PROMPT.format(query=query)}],
             )
-            return message.content[0].text.strip()
+            return (
+                next((b.text for b in message.content if isinstance(b, TextBlock)), "").strip()
+                or None
+            )
         except Exception as exc:
             logger.debug("query_expander.hyde_failed exc=%s", exc)
             return None

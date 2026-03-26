@@ -81,7 +81,7 @@ class PDFTextExtractor:
             doc = fitz.open(str(pdf_path))
             pages: list[str] = []
             for page in doc:
-                pages.append(page.get_text())
+                pages.append(str(page.get_text()))
             doc.close()
             return "\n\n".join(pages)
         except Exception as exc:

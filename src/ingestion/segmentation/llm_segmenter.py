@@ -6,6 +6,7 @@ import json
 
 import structlog
 from anthropic import Anthropic
+from anthropic.types import TextBlock
 
 logger = structlog.get_logger(__name__)
 
@@ -123,7 +124,7 @@ class LLMSegmenter:
             ],
         )
 
-        content = response.content[0].text.strip()
+        content = next((b.text for b in response.content if isinstance(b, TextBlock)), "").strip()
 
         # Strip any accidental markdown code fences
         if content.startswith("```"):

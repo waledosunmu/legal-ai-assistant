@@ -409,7 +409,7 @@ async def create_engine(
     from config import settings
     from retrieval.cache import LegalRetrievalCache
 
-    voyage_client = voyageai.AsyncClient(api_key=settings.embedding_api_key)
+    voyage_client = voyageai.AsyncClient(api_key=settings.embedding_api_key)  # type: ignore[attr-defined]
     anthropic_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     cache = LegalRetrievalCache(settings.redis_url)
 

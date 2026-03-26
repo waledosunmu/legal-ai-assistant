@@ -103,7 +103,7 @@ class LegalTextChunker:
         facts_added = False
         for seg in segmented_judgment.get("segments", []):
             seg_type = seg.get("segment_type") if isinstance(seg, dict) else seg.segment_type.value
-            content = seg.get("content") if isinstance(seg, dict) else seg.content
+            content = (seg.get("content") or "") if isinstance(seg, dict) else (seg.content or "")
 
             if seg_type in (SegmentType.FACTS.value, SegmentType.BACKGROUND.value):
                 if not facts_added:

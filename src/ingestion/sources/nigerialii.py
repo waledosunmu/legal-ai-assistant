@@ -13,7 +13,7 @@ from urllib.parse import urljoin
 
 import httpx
 import structlog
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 if TYPE_CHECKING:
@@ -186,11 +186,15 @@ class NigeriaLIICrawler:
             case_name=entry.case_name,
             source_url=url,
             court=entry.court,
-            media_neutral_citation=metadata.get("citation") or entry.citation,
-            case_number=metadata.get("case_number") or entry.case_number,
-            judges=metadata.get("judges", []),
+            media_neutral_citation=str(metadata["citation"])
+            if metadata.get("citation")
+            else entry.citation,
+            case_number=str(metadata["case_number"])
+            if metadata.get("case_number")
+            else entry.case_number,
+            judges=list(metadata["judges"]) if metadata.get("judges") else [],  # type: ignore[arg-type]
             judgment_date=entry.judgment_date,
-            language=metadata.get("language", "English"),
+            language=str(metadata.get("language", "English")),
             labels=entry.labels,
             full_text=full_text,
             full_html=full_html,
@@ -245,7 +249,7 @@ class NigeriaLIICrawler:
 
         return entries
 
-    def _parse_listing_row(self, row: BeautifulSoup, court: Court) -> CaseListEntry | None:
+    def _parse_listing_row(self, row: Tag | BeautifulSoup, court: Court) -> CaseListEntry | None:
         """Parse a single table row from a year listing page."""
         link = row.select_one("a[href*='/akn/']")
         if not link:

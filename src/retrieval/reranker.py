@@ -19,6 +19,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from anthropic.types import TextBlock
+
 from retrieval.models import CandidateResult, RetrievalConfig, SearchResult
 
 logger = logging.getLogger(__name__)
@@ -159,13 +161,15 @@ class LLMReranker:
         prompt = _RERANK_PROMPT.format(query=query, cases_json=cases_json)
 
         try:
+            if self._anthropic is None:
+                raise RuntimeError("no anthropic client")
             settings = _get_settings()
             message = await self._anthropic.messages.create(
                 model=settings.extraction_model,
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}],
             )
-            raw = message.content[0].text.strip()
+            raw = next((b.text for b in message.content if isinstance(b, TextBlock)), "").strip()
             raw = re.sub(r"^```(?:json)?\s*", "", raw)
             raw = re.sub(r"\s*```$", "", raw)
             data = json.loads(raw)

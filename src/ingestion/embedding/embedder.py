@@ -8,6 +8,7 @@ from pathlib import Path
 
 import structlog
 import voyageai
+import voyageai.error  # type: ignore[import]
 
 from ingestion.embedding.chunker import EmbeddingChunk
 
@@ -41,12 +42,12 @@ class CorpusEmbedder:
         api_key: str | None = None,
         batch_size: int = 128,
         sleep_between_batches: float = 0.0,
-        _client: voyageai.AsyncClient | None = None,
+        _client: voyageai.AsyncClient | None = None,  # type: ignore[name-defined]
     ) -> None:
         self.model = model
         self.batch_size = batch_size
         self.sleep_between_batches = sleep_between_batches
-        self._client: voyageai.AsyncClient = _client or voyageai.AsyncClient(api_key=api_key)
+        self._client: voyageai.AsyncClient = _client or voyageai.AsyncClient(api_key=api_key)  # type: ignore[name-defined]
 
     async def embed_chunks(
         self,
@@ -74,11 +75,12 @@ class CorpusEmbedder:
             batch = to_embed[i : i + self.batch_size]
             texts = [c.content for c in batch]
             # Retry once on rate limit with a 60-second back-off
+            vectors: list[list[float]] = []
             for attempt in range(2):
                 try:
                     vectors = await self._embed_batch(texts)
                     break
-                except voyageai.error.RateLimitError:
+                except voyageai.error.RateLimitError:  # type: ignore[attr-defined]
                     if attempt == 0:
                         wait = 60
                         logger.warning("embedder.rate_limit", wait_seconds=wait, batch=i)
@@ -166,4 +168,4 @@ class CorpusEmbedder:
             model=self.model,
             input_type="document",
         )
-        return response.embeddings
+        return response.embeddings  # type: ignore[return-value]

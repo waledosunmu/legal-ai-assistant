@@ -23,6 +23,8 @@ from pathlib import Path
 # Allow running from repo root without installing
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from anthropic.types import TextBlock
+
 from ingestion.citations.extractor import NigerianCitationExtractor
 from retrieval.models import ParsedQuery
 
@@ -335,7 +337,7 @@ class QueryParser:
                 max_tokens=512,
                 messages=[{"role": "user", "content": prompt}],
             )
-            raw = message.content[0].text.strip()
+            raw = next((b.text for b in message.content if isinstance(b, TextBlock)), "").strip()
             # Strip markdown code fences if present
             raw = re.sub(r"^```(?:json)?\s*", "", raw)
             raw = re.sub(r"\s*```$", "", raw)
