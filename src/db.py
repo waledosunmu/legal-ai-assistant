@@ -5,10 +5,13 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 import structlog
+from asyncpg.pool import PoolConnectionProxy
 
 from config import settings
 
 logger = structlog.get_logger(__name__)
+
+DBConnection = asyncpg.Connection | PoolConnectionProxy
 
 _pool: asyncpg.Pool | None = None
 
@@ -45,8 +48,8 @@ async def get_pool() -> asyncpg.Pool:
 
 
 @asynccontextmanager
-async def get_connection() -> AsyncGenerator[asyncpg.Connection, None]:
+async def get_connection() -> AsyncGenerator[DBConnection, None]:
     """Acquire a connection from the pool as an async context manager."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        yield conn  # type: ignore[misc]
+        yield conn

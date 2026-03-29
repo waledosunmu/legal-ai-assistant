@@ -4,7 +4,7 @@ Authentication flow:
   POST https://api.nwlronline.com/secure/v1/login
   Body: {"data": "<HS256 JWT>"}
   Header: signature: 2b72e1a-55d3-4afd-811f-63f24
-  Response: {"token": "<bearer token>"}
+    Response: {"success": {"access_token": "<bearer token>", "user_token": "<request signature>"}}
 
 Case ID format: "{part}_1_{page_start}"  e.g. "2034_1_349"
 
@@ -29,6 +29,7 @@ import json
 import random
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -47,7 +48,7 @@ _USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/122.0.0.0 Safari/537.36"
 )
-_DEFAULT_RATE_LIMIT = 2.0  # seconds between requests
+_DEFAULT_RATE_LIMIT = 3.0  # seconds between requests
 
 
 @dataclass(frozen=True)
@@ -71,8 +72,8 @@ class NWLRCrawler:
     Authenticated crawler for NWLR Online.
 
     Design principles:
-    1. Auth: HS256 JWT login; bearer token refreshed on 401.
-    2. Rate-limited: 1 request per ``rate_limit_seconds`` (default 2s).
+    1. Auth: HS256 JWT login; protected requests require both bearer token and session user_token.
+    2. Rate-limited: 1 request per ``rate_limit_seconds`` (default 3s).
     3. Disk-cached: metadata JSON + HTML cached under ``raw_cache_dir``.
     4. Resumable: cache hits skip the network entirely.
     5. Async context manager: manages the shared httpx client lifecycle.
@@ -89,7 +90,9 @@ class NWLRCrawler:
         self._password = password
         self.raw_cache_dir = raw_cache_dir
         self.rate_limit_seconds = rate_limit_seconds
+        self._current_rate_limit_seconds = rate_limit_seconds
         self._token: str | None = None
+        self._user_token: str | None = None
         self._client: httpx.AsyncClient | None = None
         self._semaphore = asyncio.Semaphore(1)  # serialise all outbound requests
         raw_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -106,8 +109,8 @@ class NWLRCrawler:
                 "User-Agent": _USER_AGENT,
                 "signature": _SIGNATURE_HEADER,
                 "Accept": "application/json, text/plain, */*",
-                "Origin": "https://www.nwlronline.com",
-                "Referer": "https://www.nwlronline.com/",
+                "Origin": "https://nwlronline.com",
+                "Referer": "https://nwlronline.com/",
             },
             follow_redirects=True,
         )
@@ -122,7 +125,7 @@ class NWLRCrawler:
     # ── Authentication ────────────────────────────────────────────────────
 
     async def _authenticate(self) -> None:
-        """Login and store the bearer token."""
+        """Login and store the bearer token plus per-session request signature."""
         now = int(time.time())
         payload = {
             "email": self._email,
@@ -137,18 +140,31 @@ class NWLRCrawler:
             f"{_API_BASE}/login",
             json={"data": token},
         )
+        if resp.status_code >= 400:
+            logger.error(
+                "nwlr.auth_failed",
+                status=resp.status_code,
+                message=self._response_message(resp),
+            )
         resp.raise_for_status()
         data = resp.json()
-        # Response: {"success": {"access_token": "...", ...}}
-        self._token = data["success"]["access_token"]
-        logger.info("nwlr.authenticated")
+        success = data.get("success") or {}
+        access_token = success.get("access_token")
+        user_token = success.get("user_token")
+        if not access_token or not user_token:
+            raise RuntimeError("NWLR login response missing access_token or user_token")
 
-    async def _ensure_auth(self) -> str:
-        """Return the current bearer token, re-authenticating if needed."""
-        if not self._token:
+        self._token = access_token
+        self._user_token = user_token
+        logger.info("nwlr.authenticated", ipuser=bool(success.get("ipuser")))
+
+    async def _ensure_auth(self) -> tuple[str, str]:
+        """Return the current bearer token and request signature, re-authenticating if needed."""
+        if not self._token or not self._user_token:
             await self._authenticate()
         assert self._token is not None
-        return self._token
+        assert self._user_token is not None
+        return self._token, self._user_token
 
     # ── Public API ────────────────────────────────────────────────────────
 
@@ -311,6 +327,7 @@ class NWLRCrawler:
         skip_existing: bool = True,
         manifest_path: Path = Path("data/nwlr_manifest.json"),
         max_scan_page: int = 700,
+        on_part_error: Callable[[int, Exception], None] | None = None,
     ) -> dict[int, list[NWLRCaseId]]:
         """
         Discover cases across ``parts`` (default: all 1–2034).
@@ -331,7 +348,14 @@ class NWLRCrawler:
                 result[p] = [NWLRCaseId.from_str(s) for s in manifest[key]]
                 continue
 
-            ids = await self.discover_part(p, max_scan_page=max_scan_page)
+            try:
+                ids = await self.discover_part(p, max_scan_page=max_scan_page)
+            except Exception as exc:
+                logger.error("nwlr.discover_part_failed", part=p, error=str(exc))
+                if on_part_error is not None:
+                    on_part_error(p, exc)
+                result[p] = []
+                continue
             result[p] = ids
             manifest[key] = [c.as_str() for c in ids]
 
@@ -351,23 +375,126 @@ class NWLRCrawler:
             raise RuntimeError("NWLRCrawler must be used as an async context manager")
         return self._client
 
+    def _increase_rate_limit(
+        self,
+        *,
+        multiplier: float = 1.5,
+        floor: float | None = None,
+        ceiling: float = 30.0,
+    ) -> float:
+        """Increase the live pacing after a block or throttling signal."""
+        baseline = max(self._current_rate_limit_seconds, self.rate_limit_seconds)
+        self._current_rate_limit_seconds = min(
+            ceiling,
+            max(floor or self.rate_limit_seconds, baseline * multiplier),
+        )
+        return self._current_rate_limit_seconds
+
+    def _relax_rate_limit(self, *, decay_seconds: float = 0.25) -> float:
+        """Gradually return to the configured base pacing after successful requests."""
+        if self._current_rate_limit_seconds <= self.rate_limit_seconds:
+            self._current_rate_limit_seconds = self.rate_limit_seconds
+        else:
+            self._current_rate_limit_seconds = max(
+                self.rate_limit_seconds,
+                self._current_rate_limit_seconds - decay_seconds,
+            )
+        return self._current_rate_limit_seconds
+
+    @staticmethod
+    def _response_message(resp: httpx.Response) -> str | None:
+        """Extract a short diagnostic message without logging secrets or whole bodies."""
+        content_type = resp.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                body = resp.json()
+            except ValueError:
+                return None
+            if isinstance(body, dict):
+                message = body.get("message")
+                if isinstance(message, str):
+                    return message[:200]
+        return None
+
     async def _get(self, path: str) -> httpx.Response:
         """
         Rate-limited authenticated GET with:
         - Jitter (±0.5s) on top of base rate limit to avoid bot detection patterns
-        - Automatic 401 re-auth (token expiry)
+        - Automatic 401 re-auth (token expiry or invalid per-session signature)
         - 403 Cloudflare back-off: sleep 90s then retry once
         """
         resp = await self._get_once(path)
 
         if resp.status_code == 401:
+            logger.warning(
+                "nwlr.auth_rejected",
+                path=path,
+                status=resp.status_code,
+                message=self._response_message(resp),
+                retrying=True,
+            )
             self._token = None
+            self._user_token = None
             resp = await self._get_once(path)
+            if resp.status_code == 401:
+                logger.error(
+                    "nwlr.auth_rejected_persisted",
+                    path=path,
+                    status=resp.status_code,
+                    message=self._response_message(resp),
+                    adaptive_rate_limit=round(self._increase_rate_limit(multiplier=1.25), 2),
+                )
+
+        if resp.status_code == 429:
+            backoff_seconds = max(
+                30.0,
+                self._increase_rate_limit(multiplier=2.0, floor=10.0, ceiling=45.0) * 2,
+            ) + random.uniform(0, 10)
+            logger.warning(
+                "nwlr.rate_limited",
+                path=path,
+                status=resp.status_code,
+                message=self._response_message(resp),
+                retrying=True,
+                backoff_seconds=round(backoff_seconds, 2),
+                adaptive_rate_limit=round(self._current_rate_limit_seconds, 2),
+            )
+            await asyncio.sleep(backoff_seconds)
+            resp = await self._get_once(path)
+            if resp.status_code == 429:
+                logger.error(
+                    "nwlr.rate_limited_persisted",
+                    path=path,
+                    status=resp.status_code,
+                    message=self._response_message(resp),
+                    adaptive_rate_limit=round(self._current_rate_limit_seconds, 2),
+                )
 
         if resp.status_code == 403:
-            logger.warning("nwlr.cloudflare_block", path=path)
-            await asyncio.sleep(90 + random.uniform(0, 30))
+            backoff_seconds = 90 + random.uniform(0, 30)
+            self._increase_rate_limit(multiplier=2.0, floor=10.0, ceiling=45.0)
+            logger.warning(
+                "nwlr.cloudflare_block",
+                path=path,
+                status=resp.status_code,
+                message=self._response_message(resp),
+                retrying=True,
+                backoff_seconds=round(backoff_seconds, 2),
+                adaptive_rate_limit=round(self._current_rate_limit_seconds, 2),
+            )
+            await asyncio.sleep(backoff_seconds)
             resp = await self._get_once(path)
+            if resp.status_code == 403:
+                logger.error(
+                    "nwlr.cloudflare_block_persisted",
+                    path=path,
+                    status=resp.status_code,
+                    message=self._response_message(resp),
+                    adaptive_rate_limit=round(self._current_rate_limit_seconds, 2),
+                )
+
+        if resp.status_code not in (403, 429):
+            self._relax_rate_limit()
 
         logger.debug("nwlr.get", path=path, status=resp.status_code)
         return resp
@@ -376,11 +503,17 @@ class NWLRCrawler:
         """Single rate-limited GET (no retry logic)."""
         async with self._semaphore:
             # Jitter: add ±50% of rate_limit to break predictable timing patterns
-            jitter = random.uniform(-0.5 * self.rate_limit_seconds, 0.5 * self.rate_limit_seconds)
-            await asyncio.sleep(max(0.1, self.rate_limit_seconds + jitter))
-            token = await self._ensure_auth()
+            jitter = random.uniform(
+                -0.5 * self._current_rate_limit_seconds,
+                0.5 * self._current_rate_limit_seconds,
+            )
+            await asyncio.sleep(max(0.1, self._current_rate_limit_seconds + jitter))
+            token, user_token = await self._ensure_auth()
             client = self._require_client()
             return await client.get(
                 f"{_API_BASE}{path}",
-                headers={"Authorization": f"Bearer {token}"},
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "signature": user_token,
+                },
             )

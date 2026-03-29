@@ -135,6 +135,12 @@ uv run python scripts/nwlr_crawl.py discover --parts-from 2000 --parts-to 2034
 # Fetch metadata + HTML for all discovered cases
 uv run python scripts/nwlr_crawl.py fetch
 
+# Fetch only one part and a page-start range within that part
+uv run python scripts/nwlr_crawl.py fetch --part 2034 --page-from 200 --page-to 400
+
+# Probe NWLR login + one protected endpoint before a longer run
+uv run python scripts/nwlr_crawl.py health --case-id 2034_1_349
+
 # Parse cached HTML into NWLR.jsonl
 uv run python scripts/nwlr_crawl.py parse
 
@@ -148,7 +154,11 @@ uv run python scripts/nwlr_crawl.py embed
 uv run python scripts/nwlr_crawl.py status
 ```
 
-**Rate limiting:** Cloudflare blocks rapid requests. Default rate limit is 3s with ±50% jitter. Use `--rate-limit 3.0` (already the default). A 403 response triggers an automatic 90s back-off + retry.
+**Authentication:** NWLR login returns both an `access_token` and a session-specific `user_token`. Protected endpoints require `Authorization: Bearer <access_token>` plus `signature: <user_token>`; re-authentication must refresh both values.
+
+**Rate limiting:** Cloudflare blocks rapid requests. Default rate limit is 3s with ±50% jitter for both `discover` and `fetch`. Use `--rate-limit 3.0` or slower. The crawler now increases its live pacing after `403` or `429` responses and gradually relaxes back toward the configured baseline after successful requests.
+
+**Failure checkpoints:** Discovery, health probes, and fetch failures are appended to `data/raw/nwlr/failures.jsonl` so long runs leave a durable error trail instead of only terminal output.
 
 **Discovery strategy:** NWLR has no listing API. The crawler linearly scans pages 1–700 per part to find the first case, then chain-follows via `page_end + 1`. Null-probed pages are cached to disk, making interrupted runs resumable without redundant API calls.
 

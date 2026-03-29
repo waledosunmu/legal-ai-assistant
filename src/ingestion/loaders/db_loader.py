@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncpg
 import structlog
+from asyncpg.pool import PoolConnectionProxy
 
 from ingestion.segmentation.models import SegmentType
 
 logger = structlog.get_logger(__name__)
+
+DBConnection = asyncpg.Connection | PoolConnectionProxy
 
 
 # ── Enum mappings ──────────────────────────────────────────────────────────────
@@ -155,7 +158,7 @@ class BulkCaseLoader:
 
     async def upsert_case(
         self,
-        conn: asyncpg.Connection,
+        conn: DBConnection,
         record: dict,
     ) -> str:
         """
@@ -206,7 +209,7 @@ class BulkCaseLoader:
 
     async def upsert_segments(
         self,
-        conn: asyncpg.Connection,
+        conn: DBConnection,
         case_id: str,
         segments: list[dict],
     ) -> int:
@@ -244,7 +247,7 @@ class BulkCaseLoader:
 
     async def upsert_chunks(
         self,
-        conn: asyncpg.Connection,
+        conn: DBConnection,
         case_id: str,
         chunks: list[dict],
     ) -> int:
@@ -283,7 +286,7 @@ class BulkCaseLoader:
 
     async def update_search_vector(
         self,
-        conn: asyncpg.Connection,
+        conn: DBConnection,
         case_id: str,
     ) -> None:
         """Refresh the ``search_vector`` tsvector column for one case."""
@@ -291,7 +294,7 @@ class BulkCaseLoader:
 
     async def load_batch(
         self,
-        conn: asyncpg.Connection,
+        conn: DBConnection,
         records: list[dict],
     ) -> dict:
         """

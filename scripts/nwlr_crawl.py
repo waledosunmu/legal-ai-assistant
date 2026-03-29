@@ -9,6 +9,9 @@ Commands::
     # Fetch metadata + HTML for a specific part (reads manifest, hits API)
     python scripts/nwlr_crawl.py fetch --part 2034
 
+    # Probe login + one protected endpoint before a long crawl
+    python scripts/nwlr_crawl.py health --case-id 2034_1_349
+
     # Parse fetched HTML into NWLR.jsonl
     python scripts/nwlr_crawl.py parse --limit 100
 
@@ -24,6 +27,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import click
@@ -41,6 +45,35 @@ _DATA_DIR = Path("data")
 _MANIFEST = _DATA_DIR / "nwlr_manifest.json"
 _RAW_DIR = _DATA_DIR / "raw" / "nwlr"
 _OUT_JSONL = _DATA_DIR / "raw" / "judgments" / "NWLR.jsonl"
+_FAILURES_LOG = _RAW_DIR / "failures.jsonl"
+
+
+def _append_failure(stage: str, identifier: str, error: str, **details: object) -> None:
+    """Append one crawler failure record to disk so long runs are diagnosable and resumable."""
+    record = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "stage": stage,
+        "identifier": identifier,
+        "error": error,
+        "details": details,
+    }
+    _FAILURES_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with _FAILURES_LOG.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _select_probe_case_id(case_id: str | None) -> NWLRCaseId:
+    """Return an explicit or fallback case ID for health checks."""
+    if case_id:
+        return NWLRCaseId.from_str(case_id)
+
+    if _MANIFEST.exists():
+        manifest: dict[str, list[str]] = json.loads(_MANIFEST.read_text())
+        for _, ids in sorted(manifest.items(), key=lambda x: int(x[0])):
+            if ids:
+                return NWLRCaseId.from_str(ids[0])
+
+    return NWLRCaseId(part=2034, page_start=349)
 
 
 # ── CLI group ─────────────────────────────────────────────────────────────────
@@ -107,6 +140,9 @@ def discover(
         f"max_scan_page={max_scan_page}, rate_limit={rate_limit}s …"
     )
 
+    def _report_part_error(part_num: int, exc: Exception) -> None:
+        _append_failure("discover_part", str(part_num), str(exc), max_scan_page=max_scan_page)
+
     async def _run() -> None:
         async with NWLRCrawler(
             email=email,
@@ -119,6 +155,7 @@ def discover(
                 skip_existing=not no_skip,
                 manifest_path=_MANIFEST,
                 max_scan_page=max_scan_page,
+                on_part_error=_report_part_error,
             )
         total_cases = sum(len(v) for v in result.values())
         click.echo(f"Done. {total_cases} case IDs across {len(result)} parts.")
@@ -133,24 +170,70 @@ def discover(
 @cli.command()
 @click.option("--part", "part", default=None, type=int, help="Fetch only this part.")
 @click.option("--limit", default=0, show_default=True, type=int, help="Max cases to fetch (0=all).")
-def fetch(part: int | None, limit: int) -> None:
+@click.option(
+    "--case-id",
+    "case_id",
+    default=None,
+    help="Fetch only this exact case ID, e.g. 2034_1_349.",
+)
+@click.option(
+    "--page-from",
+    "page_from",
+    default=None,
+    type=int,
+    help="Only fetch cases whose page_start is >= this value.",
+)
+@click.option(
+    "--page-to",
+    "page_to",
+    default=None,
+    type=int,
+    help="Only fetch cases whose page_start is <= this value.",
+)
+@click.option(
+    "--rate-limit",
+    "rate_limit",
+    default=3.0,
+    show_default=True,
+    type=float,
+    help="Seconds between API requests. Protected endpoints are more reliable at 3s+ sustained.",
+)
+def fetch(
+    part: int | None,
+    limit: int,
+    case_id: str | None,
+    page_from: int | None,
+    page_to: int | None,
+    rate_limit: float,
+) -> None:
     """Fetch metadata JSON + HTML for cases listed in the manifest."""
-    if not _MANIFEST.exists():
+    if case_id is None and not _MANIFEST.exists():
         raise click.ClickException("Manifest not found. Run `discover` first.")
+    if case_id is not None and (page_from is not None or page_to is not None):
+        raise click.ClickException("--case-id cannot be combined with --page-from/--page-to")
+    if page_from is not None and page_to is not None and page_from > page_to:
+        raise click.ClickException("--page-from must be <= --page-to")
 
     email = settings.nwlr_email
     password = settings.nwlr_password
     if not email or not password:
         raise click.ClickException("NWLR_EMAIL and NWLR_PASSWORD must be set in .env")
 
-    manifest: dict[str, list[str]] = json.loads(_MANIFEST.read_text())
-
     # Build work list
     case_ids: list[NWLRCaseId] = []
-    for part_key, ids in sorted(manifest.items(), key=lambda x: int(x[0])):
-        if part is not None and int(part_key) != part:
-            continue
-        case_ids.extend(NWLRCaseId.from_str(s) for s in ids)
+    if case_id is not None:
+        case_ids = [NWLRCaseId.from_str(case_id)]
+    else:
+        manifest: dict[str, list[str]] = json.loads(_MANIFEST.read_text())
+        for part_key, ids in sorted(manifest.items(), key=lambda x: int(x[0])):
+            if part is not None and int(part_key) != part:
+                continue
+            case_ids.extend(NWLRCaseId.from_str(s) for s in ids)
+
+    if page_from is not None:
+        case_ids = [cid for cid in case_ids if cid.page_start >= page_from]
+    if page_to is not None:
+        case_ids = [cid for cid in case_ids if cid.page_start <= page_to]
 
     if limit:
         case_ids = case_ids[:limit]
@@ -163,6 +246,7 @@ def fetch(part: int | None, limit: int) -> None:
             email=email,
             password=password,
             raw_cache_dir=_RAW_DIR,
+            rate_limit_seconds=rate_limit,
         ) as crawler:
             for cid in case_ids:
                 meta_path = _RAW_DIR / "meta" / f"{cid.as_str()}.json"
@@ -174,21 +258,95 @@ def fetch(part: int | None, limit: int) -> None:
                     meta = await crawler.fetch_case_metadata(cid)
                     if meta is None:
                         logger.warning("nwlr_fetch.no_meta", case_id=cid.as_str())
+                        _append_failure("fetch_meta", cid.as_str(), "No metadata returned")
                         errors += 1
                         continue
                     html = await crawler.fetch_case_html(cid)
                     if html is None:
                         logger.warning("nwlr_fetch.no_html", case_id=cid.as_str())
+                        _append_failure("fetch_html", cid.as_str(), "No HTML returned")
                         errors += 1
                         continue
                     fetched += 1
                 except Exception as exc:
                     logger.error("nwlr_fetch.error", case_id=cid.as_str(), error=str(exc))
+                    _append_failure("fetch_exception", cid.as_str(), str(exc))
                     errors += 1
 
         click.echo(f"Fetched: {fetched}  Skipped (cached): {skipped}  Errors: {errors}")
 
     asyncio.run(_run())
+
+
+# ── health ───────────────────────────────────────────────────────────────────
+
+
+@cli.command()
+@click.option(
+    "--case-id",
+    "case_id",
+    default=None,
+    help="Case ID to probe, e.g. 2034_1_349. Defaults to the first manifest case or 2034_1_349.",
+)
+@click.option(
+    "--rate-limit",
+    "rate_limit",
+    default=3.0,
+    show_default=True,
+    type=float,
+    help="Seconds between API requests during the health probe.",
+)
+@click.option(
+    "--fetch-html/--metadata-only",
+    "fetch_html",
+    default=True,
+    show_default=True,
+    help="Also verify the protected HTML endpoint after metadata succeeds.",
+)
+def health(case_id: str | None, rate_limit: float, fetch_html: bool) -> None:
+    """Verify NWLR login plus one protected endpoint before a longer crawl."""
+    email = settings.nwlr_email
+    password = settings.nwlr_password
+    if not email or not password:
+        raise click.ClickException("NWLR_EMAIL and NWLR_PASSWORD must be set in .env")
+
+    probe_case_id = _select_probe_case_id(case_id)
+    click.echo(f"Probing NWLR auth with case {probe_case_id.as_str()} at {rate_limit}s/request …")
+
+    async def _run() -> tuple[dict[str, object], int | None]:
+        async with NWLRCrawler(
+            email=email,
+            password=password,
+            raw_cache_dir=_RAW_DIR,
+            rate_limit_seconds=rate_limit,
+        ) as crawler:
+            meta = await crawler.fetch_case_metadata(probe_case_id)
+            if meta is None:
+                raise RuntimeError(f"No metadata returned for {probe_case_id.as_str()}")
+
+            html_length: int | None = None
+            if fetch_html:
+                html = await crawler.fetch_case_html(probe_case_id)
+                if html is None:
+                    raise RuntimeError(f"No HTML returned for {probe_case_id.as_str()}")
+                html_length = len(html)
+
+            return meta, html_length
+
+    try:
+        meta, html_length = asyncio.run(_run())
+    except Exception as exc:
+        _append_failure("health", probe_case_id.as_str(), str(exc), fetch_html=fetch_html)
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo("Health check OK")
+    click.echo(f"Case ID     : {probe_case_id.as_str()}")
+    click.echo(f"Case name   : {meta.get('case_name', 'Unknown')}")
+    click.echo(
+        f"Page range  : {meta.get('page_start', '?')}–{meta.get('page_end', meta.get('page_start', '?'))}"
+    )
+    if html_length is not None:
+        click.echo(f"HTML bytes  : {html_length}")
 
 
 # ── parse ─────────────────────────────────────────────────────────────────────
@@ -453,10 +611,17 @@ def status() -> None:
     if _OUT_JSONL.exists():
         jsonl_count = sum(1 for ln in _OUT_JSONL.read_text().splitlines() if ln.strip())
 
+    failure_count = 0
+    if _FAILURES_LOG.exists():
+        failure_count = sum(
+            1 for ln in _FAILURES_LOG.read_text(encoding="utf-8").splitlines() if ln.strip()
+        )
+
     click.echo(f"Manifest    : {manifest_cases:>7} cases across {manifest_parts} parts")
     click.echo(f"Meta cache  : {meta_count:>7} files")
     click.echo(f"HTML cache  : {html_count:>7} files")
     click.echo(f"Parsed JSONL: {jsonl_count:>7} records  ({_OUT_JSONL})")
+    click.echo(f"Failures    : {failure_count:>7} records  ({_FAILURES_LOG})")
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
